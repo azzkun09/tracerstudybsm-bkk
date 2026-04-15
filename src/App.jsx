@@ -14,7 +14,6 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
 // Konfigurasi Firebase Asli Milik Bapak (tracer-study-bkk)
-// Tidak lagi menggunakan database sementara Canvas.
 const firebaseConfig = {
   apiKey: "AIzaSyDuiEVi3xOOVKLM3XOB59B1gfciKFVnp40",
   authDomain: "tracer-study-bkk.firebaseapp.com",
@@ -113,7 +112,7 @@ export default function App() {
   const [theme, setTheme] = useState('light'); 
 
   const [toast, setToast] = useState(null); 
-  const [authError, setAuthError] = useState(''); // State khusus error Firebase Bapak
+  const [authError, setAuthError] = useState(''); 
 
   const [students, setStudents] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -132,7 +131,11 @@ export default function App() {
       } catch (error) {
         console.error("Auth Error:", error);
         if (isMounted) {
-          setAuthError("KONEKSI DITOLAK: Mohon aktifkan fitur 'Anonymous' di menu Authentication Firebase Console Anda agar data bisa disimpan.");
+          if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
+            setAuthError("FIREBASE DITOLAK: Fitur 'Anonymous Sign-in' belum diaktifkan di Firebase Console Anda.");
+          } else {
+            setAuthError(`FIREBASE ERROR: ${error.message}`);
+          }
           setIsLoadingDB(false);
         }
       }
@@ -154,7 +157,7 @@ export default function App() {
 
   // 2. Real-time Listeners (Firestore)
   useEffect(() => {
-    if (!user) return; // Jika gagal auth, tidak memanggil database
+    if (!user) return; 
 
     const studentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'students');
     const unsubStudents = onSnapshot(studentsRef, (snapshot) => {
@@ -162,7 +165,7 @@ export default function App() {
       setStudents(data);
     }, (err) => { 
       console.error(err); 
-      setAuthError("IZIN DATABASE DITOLAK: Pastikan Rules Firestore Anda diset ke mode Publik (Test Mode).");
+      setAuthError("IZIN DATABASE DITOLAK: Pastikan Rules Firestore diset ke Test Mode (Publik).");
     });
 
     const activitiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'activities');
@@ -222,8 +225,13 @@ export default function App() {
     if (!user) {
       showToast("Koneksi terputus. Data gagal disimpan.", "error"); return;
     }
-    // PROTEKSI: { merge: true } mencegah penimpaan data antar user
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'appSettings'), newSettings, { merge: true });
+    try {
+      // PROTEKSI: { merge: true } mencegah penimpaan data antar user
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'appSettings'), newSettings, { merge: true });
+    } catch(e) {
+      console.error("Gagal simpan setting", e);
+      throw e; // Lemparkan error agar tertangkap di UI form
+    }
   };
 
   const addAdminToDB = async (adminData) => {
@@ -624,6 +632,8 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
   const [editingAdmin, setEditingAdmin] = useState(null);
   
   const [tempSettings, setTempSettings] = useState({});
+  
+  // PERBAIKAN: Hanya memperbarui state formulir dari Firebase jika formulir belum diutak-atik atau data Firebase lebih baru
   useEffect(() => {
     setTempSettings(appSettings || {});
   }, [appSettings]);
@@ -718,16 +728,36 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
       await onAddActivityDB(`Pengaturan profil diperbarui.`, 'system');
       showToast("Pengaturan tersimpan ke Database Firestore!", "success");
     } catch (err) {
-      showToast("Gagal menyimpan ke database.", "error");
+      showToast("Gagal menyimpan ke database. Pastikan Rules Firestore Anda publik.", "error");
     }
   };
 
+  // PERBAIKAN: Resize dan kompresi gambar sebelum disimpan agar tidak ditolak Firestore karena terlalu besar (>1MB)
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 1000000) { showToast("Maksimal gambar 1MB.", "error"); return; }
       const reader = new FileReader();
-      reader.onload = (evt) => setTempSettings({...tempSettings, logo: evt.target.result});
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 300; // Resize otomatis ke ukuran kecil (aman untuk Firestore)
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+          } else {
+            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/png', 0.8);
+          setTempSettings({...tempSettings, logo: compressedBase64});
+        };
+        img.src = evt.target.result;
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -774,7 +804,7 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     
-    const fileName = `Laporan Keterserapan Lulusan ${appSettings?.schoolName || 'SMK'}.csv`;
+    const fileName = `Laporan_Keterserapan_Lulusan_${appSettings?.schoolName ? appSettings.schoolName.replace(/\s+/g, '_') : 'SMK'}.csv`;
     link.setAttribute("download", fileName);
     
     document.body.appendChild(link);
