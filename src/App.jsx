@@ -214,12 +214,33 @@ export default function App() {
   };
 
   const addStudentToDB = async (studentData) => {
-    if (!user) {
-      showToast("Koneksi terputus. Data gagal disimpan.", "error"); return;
-    }
-    // PROTEKSI: { merge: true } mencegah penimpaan data antar user
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.nisn), studentData, { merge: true });
-  };
+  console.log("USER:", user);
+  console.log("DATA:", studentData);
+
+  if (!user) {
+    console.log("USER NULL ❌");
+    showToast("Koneksi terputus. Data gagal disimpan.", "error");
+    return;
+  }
+
+  if (!studentData.nisn) {
+    console.log("NISN KOSONG ❌");
+    showToast("NISN wajib diisi!", "error");
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.nisn),
+      studentData,
+      { merge: true }
+    );
+    console.log("BERHASIL SIMPAN ✅");
+  } catch (err) {
+    console.error("ERROR FIRESTORE ❌:", err);
+    showToast("Gagal simpan ke database!", "error");
+  }
+};
 
   const saveSettingsToDB = async (newSettings) => {
     if (!user) {
