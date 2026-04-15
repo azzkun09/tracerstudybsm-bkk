@@ -684,8 +684,11 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
     });
   }, [students, selectedYear, filterJurusan, searchQuery]);
 
+    
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+
+    console.log("SUBMIT JALAN ✅");
     if((students || []).find(s => s?.nisn === newStudentData.nisn)) { 
       showToast("NISN sudah terdaftar!", "error"); 
       return; 
@@ -695,6 +698,7 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
         id: Date.now(), ...newStudentData, password: newStudentData.nisn,
         isFilled: false, email: '', noHp: '', namaPerusahaan: '', alamatPerusahaan: '', bidangUsaha: '', kontakPerusahaan: '', jabatan: '', statusKerja: '', tanggalMulai: '', gaji: ''
       };
+      console.log("KIRIM KE FIREBASE:", newStudent);
       await onAddStudentDB(newStudent);
       await onAddActivityDB(`Menambahkan alumni baru: ${newStudent.nama}.`, 'system');
       setIsAddModalOpen(false);
@@ -1254,6 +1258,7 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
                   <FileX className="w-4 h-4" />
                 </button>
               </div>
+              
               <form onSubmit={handleAddSubmit} className="p-8 space-y-5">
                 <FormInput label="Nomor NISN" name="nisn" value={newStudentData.nisn} onChange={e => setNewStudentData({...newStudentData, nisn: e.target.value})} required placeholder="Ex: 00456213" />
                 <FormInput label="Nama Lengkap" name="nama" value={newStudentData.nama} onChange={e => setNewStudentData({...newStudentData, nama: e.target.value})} required />
