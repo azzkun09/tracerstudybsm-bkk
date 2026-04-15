@@ -2,9 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Users, Briefcase, FileX, FileCheck, 
   Search, LogOut, Building, User, Edit, 
-  BarChart3, Calendar, GraduationCap, ArrowLeft,
+  Calendar, GraduationCap, ArrowLeft,
   LayoutDashboard, Users as UsersIcon, Settings, Bell, Plus, Upload, Download, Activity,
-  Database, Save, FileJson, Image as ImageIcon, ChevronDown, Sun, Moon, AlertCircle, Info, CheckCircle2,
+  Database, Save, FileJson, Image as ImageIcon, ChevronDown, AlertCircle, Info, CheckCircle2,
   UserPlus, Printer, FileSpreadsheet, Trash2, Menu, X
 } from 'lucide-react';
 
@@ -75,16 +75,19 @@ function CustomToast({ message, type, onClose }) {
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
+
   const bgColors = {
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-    error: 'bg-red-50 text-red-800 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
-    info: 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
+    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    error: 'bg-red-50 text-red-800 border-red-200',
+    info: 'bg-blue-50 text-blue-800 border-blue-200'
   };
+
   const icons = {
     success: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
     error: <AlertCircle className="w-5 h-5 text-red-500" />,
     info: <Info className="w-5 h-5 text-blue-500" />
   };
+
   return (
     <div className="fixed top-6 right-6 z-[100] toast-enter select-none pointer-events-none">
       <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-md ${bgColors[type] || bgColors.info}`}>
@@ -99,7 +102,7 @@ export default function App() {
   const [user, setUser] = useState(null); 
   const [view, setView] = useState('public'); 
   const [currentUser, setCurrentUser] = useState(null);
-  const [theme, setTheme] = useState('light'); 
+  
   const [toast, setToast] = useState(null); 
   const [authError, setAuthError] = useState(''); 
 
@@ -110,15 +113,6 @@ export default function App() {
   
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
-
-  // Efek untuk mode gelap agar berfungsi sampai ke root document HTML
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
@@ -216,7 +210,7 @@ export default function App() {
 
   const addStudentToDB = async (studentData) => {
     if (!user) { showToast("Gagal: Database terputus.", "error"); return; }
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.nisn), studentData, { merge: true });
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', String(studentData.nisn)), studentData, { merge: true });
   };
 
   const saveSettingsToDB = async (newSettings) => {
@@ -231,12 +225,22 @@ export default function App() {
 
   const addAdminToDB = async (adminData) => {
     if (!user) return;
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', adminData.username), adminData, { merge: true });
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', String(adminData.username)), adminData, { merge: true });
   };
 
   const deleteAdminFromDB = async (username) => {
-    if (!user) return;
-    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', username));
+    if (!user || !username) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', String(username)));
+  };
+
+  const deleteStudentFromDB = async (nisn) => {
+    if (!user || !nisn) return;
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', String(nisn)));
+    } catch (error) {
+      console.error("Gagal hapus alumni:", error);
+      throw error;
+    }
   };
 
   // --- APP LOGIC ---
@@ -289,10 +293,10 @@ export default function App() {
 
   if (isLoadingAuth) {
     return (
-      <div className={`min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#0b1120] transition-colors select-none`}>
+      <div className={`min-h-screen flex items-center justify-center bg-slate-50 transition-colors select-none`}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 dark:text-slate-400 font-bold">Menghubungkan ke Cloud...</p>
+          <p className="text-slate-500 font-bold">Menghubungkan ke Cloud...</p>
         </div>
       </div>
     );
@@ -303,7 +307,7 @@ export default function App() {
   const safeSettings = appSettings || initialSettings;
 
   return (
-    <div className="text-slate-800 dark:text-slate-200 font-sans selection:bg-blue-500/30 transition-colors duration-500 overflow-x-hidden min-h-screen bg-slate-100/50 dark:bg-[#0b1120]">
+    <div className="text-slate-800 font-sans selection:bg-blue-500/30 transition-colors duration-500 overflow-x-hidden min-h-screen bg-slate-50">
       <style>{customAnimations}</style>
       
       {authError && (
@@ -315,10 +319,10 @@ export default function App() {
       {toast && <CustomToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {view === 'public' && (
-        <PublicLanding students={safeStudents} appSettings={safeSettings} theme={theme} toggleTheme={() => setTheme(t => t==='light'?'dark':'light')} onGoToLogin={() => setView('login')} />
+        <PublicLanding students={safeStudents} appSettings={safeSettings} onGoToLogin={() => setView('login')} />
       )}
       {view === 'login' && (
-        <LoginScreen appSettings={safeSettings} theme={theme} toggleTheme={() => setTheme(t => t==='light'?'dark':'light')} onLogin={handleLogin} onBack={() => setView('public')} />
+        <LoginScreen appSettings={safeSettings} onLogin={handleLogin} onBack={() => setView('public')} />
       )}
       {view === 'admin' && (
         <AdminDashboard 
@@ -327,7 +331,6 @@ export default function App() {
           appSettings={safeSettings}
           admins={admins}
           hasLoadedSettings={hasLoadedSettings}
-          theme={theme} toggleTheme={() => setTheme(t => t==='light'?'dark':'light')}
           onLogout={handleLogout} 
           onUpdateStudent={updateStudentData}
           onAddStudentDB={addStudentToDB}
@@ -335,18 +338,19 @@ export default function App() {
           onSaveSettingsDB={saveSettingsToDB}
           onAddAdminDB={addAdminToDB}
           onDeleteAdminDB={deleteAdminFromDB}
+          onDeleteStudent={deleteStudentFromDB}
           showToast={showToast}
         />
       )}
       {view === 'student' && (
-        <StudentForm student={currentUser} appSettings={safeSettings} hasLoadedSettings={hasLoadedSettings} theme={theme} toggleTheme={() => setTheme(t => t==='light'?'dark':'light')} onLogout={handleLogout} onSave={updateStudentData} showToast={showToast} />
+        <StudentForm student={currentUser} appSettings={safeSettings} hasLoadedSettings={hasLoadedSettings} onLogout={handleLogout} onSave={updateStudentData} showToast={showToast} />
       )}
     </div>
   );
 }
 
 // ================= KOMPONEN HALAMAN PUBLIK =================
-function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin }) {
+function PublicLanding({ students, appSettings, onGoToLogin }) {
   const [selectedYear, setSelectedYear] = useState('Semua');
   
   const years = useMemo(() => {
@@ -371,25 +375,24 @@ function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin 
   const typedHeading = useTypewriter("Pantau Rekam Jejak", 80, 600);
 
   return (
-    <div className="min-h-screen flex flex-col relative anim-fade-in">
-      <nav className="fixed w-full top-0 z-50 bg-white/80 dark:bg-[#0b1120]/80 backdrop-blur-lg border-b border-slate-200/70 dark:border-white/10 shadow-sm shadow-slate-200/20 dark:shadow-none transition-all select-none">
+    <div className="min-h-screen flex flex-col relative anim-fade-in bg-slate-50">
+      <nav className="fixed w-full top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm transition-all select-none">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <div className="flex items-center gap-3 sm:gap-4 group cursor-default">
               {appSettings?.logo ? (
-                <div className="bg-white/10 p-1 rounded-xl shadow-sm"><img src={appSettings.logo} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform" /></div>
+                <div className="bg-slate-100 p-1 rounded-xl shadow-sm"><img src={appSettings.logo} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform" /></div>
               ) : (
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 sm:p-2.5 rounded-xl shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
                   <GraduationCap className="text-white w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
               )}
               <div>
-                <h1 className="font-extrabold text-base sm:text-xl text-slate-900 dark:text-white tracking-tight leading-none sm:leading-normal">BKK Tracer Study</h1>
-                <p className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5 sm:mt-1 truncate max-w-[150px] sm:max-w-[200px]">{appSettings?.schoolName || 'BKK SMK'}</p>
+                <h1 className="font-extrabold text-base sm:text-xl text-slate-900 tracking-tight leading-none sm:leading-normal">BKK Tracer Study</h1>
+                <p className="text-[10px] sm:text-sm text-slate-50 font-medium mt-0.5 sm:mt-1 truncate max-w-[150px] sm:max-w-[200px] text-slate-500">{appSettings?.schoolName || 'BKK SMK'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
               <button onClick={onGoToLogin} className="relative inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-all duration-300 bg-blue-600 rounded-full hover:bg-blue-700 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:-translate-y-0.5 focus:outline-none">
                 <span className="hidden sm:inline">Masuk Portal</span>
                 <span className="sm:hidden">Portal</span>
@@ -400,7 +403,7 @@ function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin 
       </nav>
 
       {/* Hero Section */}
-      <div className="relative pt-24 pb-12 lg:pt-32 lg:pb-20 overflow-hidden bg-slate-900 dark:bg-black transition-colors duration-500 select-none">
+      <div className="relative pt-24 pb-12 lg:pt-32 lg:pb-20 overflow-hidden bg-slate-900 transition-colors duration-500 select-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:24px_24px]"></div>
         <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-blue-500 opacity-20 blur-[100px] animate-pulse"></div>
         <div className="absolute right-0 bottom-0 -z-10 h-[250px] w-[250px] rounded-full bg-indigo-500 opacity-20 blur-[80px]"></div>
@@ -426,12 +429,12 @@ function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin 
             Transparansi tingkat keterserapan alumni di dunia industri. Data real-time untuk terus meningkatkan kualitas pendidikan kami.
           </p>
           
-          <div className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 shadow-xl mx-4">
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 shadow-xl mx-4">
             <Calendar className="w-5 h-5 text-blue-400" />
             <span className="text-slate-200 font-medium text-sm">Tahun:</span>
             <div className="relative">
               <select 
-                className="appearance-none bg-slate-800/50 text-white text-sm font-bold border border-white/10 cursor-pointer pl-4 pr-10 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="appearance-none bg-slate-800 text-white text-sm font-bold border border-white/20 cursor-pointer pl-4 pr-10 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}
               >
                 {years.map(y => <option key={y} value={y}>{y === 'Semua' ? 'Semua Angkatan' : `Angkatan ${y}`}</option>)}
@@ -444,33 +447,33 @@ function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin 
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-8 relative z-20 w-full flex-grow">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none flex items-center gap-6 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 anim-slide-up delay-200">
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/20 dark:to-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20 flex-shrink-0">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_40px_rgb(0,0,0,0.05)] flex items-center gap-6 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 anim-slide-up delay-200">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 text-blue-600 border border-blue-100 flex-shrink-0">
               <Users className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <p className="text-slate-500 dark:text-slate-400 font-medium mb-1 text-xs sm:text-sm">Total Lulusan {selectedYear !== 'Semua' ? `Tahun ${selectedYear}` : ''}</p>
-              <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{totalLulusan} <span className="text-sm sm:text-base font-semibold text-slate-400 dark:text-slate-500">Alumni</span></p>
+              <p className="text-slate-500 font-medium mb-1 text-xs sm:text-sm">Total Lulusan {selectedYear !== 'Semua' ? `Tahun ${selectedYear}` : ''}</p>
+              <p className="text-3xl sm:text-4xl font-black text-slate-900">{totalLulusan} <span className="text-sm sm:text-base font-semibold text-slate-400">Alumni</span></p>
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none flex items-center gap-6 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 anim-slide-up delay-200">
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/20 dark:to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 flex-shrink-0">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_40px_rgb(0,0,0,0.05)] flex items-center gap-6 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 anim-slide-up delay-200">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-600 border border-emerald-100 flex-shrink-0">
               <Briefcase className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <p className="text-slate-500 dark:text-slate-400 font-medium mb-1 text-xs sm:text-sm">Terserap Dunia Kerja</p>
-              <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">{sudahMengisi} <span className="text-sm sm:text-base font-semibold text-slate-400 dark:text-slate-500">Bekerja</span></p>
+              <p className="text-slate-500 font-medium mb-1 text-xs sm:text-sm">Terserap Dunia Kerja</p>
+              <p className="text-3xl sm:text-4xl font-black text-slate-900">{sudahMengisi} <span className="text-sm sm:text-base font-semibold text-slate-400">Bekerja</span></p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 anim-slide-up delay-300">
-          <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none lg:col-span-1 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-500/30 transition-colors">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-500/5 rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-8 text-center w-full">Rasio Keterserapan</h3>
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_40px_rgb(0,0,0,0.05)] lg:col-span-1 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-300 transition-colors">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+            <h3 className="font-bold text-slate-900 mb-8 text-center w-full">Rasio Keterserapan</h3>
             <div className="relative w-36 h-36 sm:w-44 sm:h-44 mb-6">
               <svg className="w-full h-full transform -rotate-90">
-                <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke={theme === 'dark' ? '#1e293b' : '#f1f5f9'} strokeWidth="10%" className="transition-colors" />
+                <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="#f1f5f9" strokeWidth="10%" className="transition-colors" />
                 <circle 
                   cx="50%" cy="50%" r="45%" fill="transparent" stroke="url(#gradient-green)" strokeWidth="10%"
                   strokeLinecap="round"
@@ -485,33 +488,33 @@ function PublicLanding({ students, appSettings, theme, toggleTheme, onGoToLogin 
                 </defs>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900">
                   {totalLulusan === 0 ? 0 : Math.round((sudahMengisi / totalLulusan) * 100)}%
                 </span>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center max-w-[200px] font-medium">Persentase alumni yang telah mengonfirmasi bekerja.</p>
+            <p className="text-xs sm:text-sm text-slate-500 text-center max-w-[200px] font-medium">Persentase alumni yang telah mengonfirmasi bekerja.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none lg:col-span-2 relative overflow-hidden group hover:border-indigo-500/30 transition-colors">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50 dark:bg-indigo-500/5 rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-6">Sebaran Kerja Berdasarkan Jurusan</h3>
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_40px_rgb(0,0,0,0.05)] lg:col-span-2 relative overflow-hidden group hover:border-indigo-300 transition-colors">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50 rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+            <h3 className="font-bold text-slate-900 mb-6">Sebaran Kerja Berdasarkan Jurusan</h3>
             <div className="h-48 sm:h-60 relative w-full">
-              <SimpleBarChart data={jurusanStats} categories={['TKJ', 'TKR', 'MP']} theme={theme} />
+              <SimpleBarChart data={jurusanStats} categories={['TKJ', 'TKR', 'MP']} />
             </div>
           </div>
         </div>
       </div>
       
-      <footer className="bg-slate-100/50 dark:bg-[#0b1120]/50 border-t border-slate-200/50 dark:border-white/5 py-8 text-center transition-colors">
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium px-4">© {new Date().getFullYear()} BKK {appSettings?.schoolName || 'SMK'}. Hak Cipta Dilindungi.</p>
+      <footer className="bg-slate-200/50 border-t border-slate-200 py-8 text-center transition-colors">
+        <p className="text-xs sm:text-sm text-slate-500 font-medium px-4">© {new Date().getFullYear()} BKK {appSettings?.schoolName || 'SMK'}. Hak Cipta Dilindungi.</p>
       </footer>
     </div>
   );
 }
 
 // ================= KOMPONEN LOGIN =================
-function LoginScreen({ appSettings, theme, toggleTheme, onLogin, onBack }) {
+function LoginScreen({ appSettings, onLogin, onBack }) {
   const [role, setRole] = useState('student'); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -525,67 +528,66 @@ function LoginScreen({ appSettings, theme, toggleTheme, onLogin, onBack }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-100 dark:bg-[#0b1120] p-4 relative overflow-hidden transition-colors duration-500 anim-fade-in select-none">
-      <div className="absolute top-4 right-4 sm:right-6 z-20"><ThemeToggle theme={theme} toggleTheme={toggleTheme} /></div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-100 p-4 relative overflow-hidden transition-colors duration-500 anim-fade-in select-none">
       
-      <div className="absolute top-[-10%] left-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] sm:w-[40%] h-[40%] bg-indigo-400/20 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
 
       <div className="w-full max-w-[420px] mb-4 sm:mb-6 relative z-10 anim-slide-up delay-100">
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition font-semibold text-sm px-2">
+        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition font-semibold text-sm px-2">
           <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
         </button>
       </div>
 
-      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-white/60 dark:border-white/5 shadow-2xl shadow-blue-900/5 dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] w-full max-w-[420px] relative z-10 anim-zoom-in delay-200">
+      <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-white/60 shadow-[0_10px_40px_rgb(0,0,0,0.1)] w-full max-w-[420px] relative z-10 anim-zoom-in delay-200">
         <div className="text-center mb-6 sm:mb-8">
           {appSettings?.logo ? (
-            <div className="bg-white/50 dark:bg-slate-700/50 p-2 rounded-2xl inline-block mb-3 sm:mb-4 shadow-sm"><img src={appSettings.logo} alt="Logo" className="w-12 h-12 sm:w-16 sm:h-16 object-contain mx-auto drop-shadow-sm" /></div>
+            <div className="bg-slate-50 p-2 rounded-2xl inline-block mb-3 sm:mb-4 shadow-sm border border-slate-200"><img src={appSettings.logo} alt="Logo" className="w-12 h-12 sm:w-16 sm:h-16 object-contain mx-auto" /></div>
           ) : (
             <div className="bg-gradient-to-br from-blue-600 to-indigo-600 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl shadow-lg shadow-blue-500/30 flex items-center justify-center mx-auto mb-3 sm:mb-5">
               <GraduationCap className="text-white w-6 h-6 sm:w-8 sm:h-8" />
             </div>
           )}
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Portal Akses</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-1 truncate px-2">{appSettings?.schoolName || 'BKK SMK'}</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Portal Akses</h1>
+          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-1 truncate px-2">{appSettings?.schoolName || 'BKK SMK'}</p>
         </div>
         
-        <div className="flex bg-slate-100/80 dark:bg-slate-900/80 p-1.5 rounded-xl mb-6 sm:mb-8 border border-slate-200/50 dark:border-slate-700/50">
+        <div className="flex bg-slate-100/80 p-1.5 rounded-xl mb-6 sm:mb-8 border border-slate-200/50">
           <button
             type="button"
             onClick={() => { setRole('student'); setError(''); setUsername(''); setPassword(''); }}
-            className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${role === 'student' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent'}`}
+            className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${role === 'student' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 border border-transparent'}`}
           >
             Alumni
           </button>
           <button
             type="button"
             onClick={() => { setRole('admin'); setError(''); setUsername(''); setPassword(''); }}
-            className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${role === 'admin' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-transparent'}`}
+            className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${role === 'admin' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 border border-transparent'}`}
           >
             Admin BKK
           </button>
         </div>
 
-        {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs sm:text-sm mb-6 text-center font-medium anim-fade-in">{error}</div>}
+        {error && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-xs sm:text-sm mb-6 text-center font-medium anim-fade-in">{error}</div>}
         
         <form onSubmit={submit} className="space-y-4 sm:space-y-5">
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 cursor-default">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 cursor-default">
               {role === 'student' ? 'Nomor NISN' : 'Username'}
             </label>
             <input 
               type="text" 
-              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white text-sm font-medium placeholder:font-normal placeholder:text-slate-400 shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all text-slate-800 text-sm font-medium placeholder:font-normal placeholder:text-slate-400 shadow-sm"
               placeholder={role === 'student' ? "Masukkan NISN Anda" : "Ketik username admin"}
               value={username} onChange={(e) => setUsername(e.target.value)} required
             />
           </div>
           <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 cursor-default">Password</label>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 cursor-default">Password</label>
             <input 
               type="password" 
-              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white text-sm font-medium placeholder:font-normal placeholder:text-slate-400 shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all text-slate-800 text-sm font-medium placeholder:font-normal placeholder:text-slate-400 shadow-sm"
               placeholder="••••••••"
               value={password} onChange={(e) => setPassword(e.target.value)} required
             />
@@ -595,7 +597,7 @@ function LoginScreen({ appSettings, theme, toggleTheme, onLogin, onBack }) {
           </button>
         </form>
 
-        <div className="mt-6 sm:mt-8 text-xs sm:text-sm text-center text-slate-400 dark:text-slate-500 font-medium">
+        <div className="mt-6 sm:mt-8 text-xs sm:text-sm text-center text-slate-400 font-medium">
           {role === 'admin' ? <p>Gunakan kredensial admin sistem Anda.</p> : <p>Default kredensial menggunakan NISN.</p>}
         </div>
       </div>
@@ -604,9 +606,9 @@ function LoginScreen({ appSettings, theme, toggleTheme, onLogin, onBack }) {
 }
 
 // ================= KOMPONEN DASHBOARD ADMIN =================
-function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSettings, theme, toggleTheme, onLogout, onUpdateStudent, onAddStudentDB, onAddActivityDB, onSaveSettingsDB, onAddAdminDB, onDeleteAdminDB, showToast }) {
+function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSettings, onLogout, onUpdateStudent, onAddStudentDB, onAddActivityDB, onSaveSettingsDB, onAddAdminDB, onDeleteAdminDB, onDeleteStudent, showToast }) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [selectedYear, setSelectedYear] = useState('Semua');
   const [filterJurusan, setFilterJurusan] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -621,8 +623,10 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [adminFormData, setAdminFormData] = useState({ username: '', password: '' });
 
+  // FITUR MODAL PENGHAPUSAN
   const [editingStudent, setEditingStudent] = useState(null);
-  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [studentToDelete, setStudentToDelete] = useState(null); // Modal khusus untuk menghapus data siswa
+  const [adminToDelete, setAdminToDelete] = useState(null); // Modal khusus untuk menghapus admin
   
   const [tempSettings, setTempSettings] = useState({});
   
@@ -887,16 +891,16 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
   };
 
   if (!hasLoadedSettings) {
-    return <div className="min-h-screen flex items-center justify-center font-bold text-slate-400 bg-slate-100 dark:bg-[#0b1120] transition-colors">Sinkronisasi Cloud...</div>;
+    return <div className="min-h-screen flex items-center justify-center font-bold text-slate-400 bg-slate-100 transition-colors">Sinkronisasi Cloud...</div>;
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-100/50 dark:bg-[#0b1120] transition-colors anim-fade-in relative">
+    <div className="min-h-screen flex bg-slate-100/50 transition-colors anim-fade-in relative">
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-40 lg:hidden anim-fade-in"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden anim-fade-in"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -937,28 +941,27 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-[260px] flex flex-col min-h-screen relative w-full overflow-x-hidden">
-        <header className="h-20 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-white/5 shadow-sm flex items-center justify-between px-4 sm:px-8 sticky top-0 z-20 transition-colors anim-fade-in select-none">
+        <header className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm flex items-center justify-between px-4 sm:px-8 sticky top-0 z-20 transition-colors anim-fade-in select-none">
           <div className="flex items-center gap-3">
             {/* Hamburger menu for mobile */}
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 dark:text-slate-300 lg:hidden hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 lg:hidden hover:bg-slate-200 rounded-xl transition-colors">
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight capitalize animate-in slide-in-from-left-4 duration-500 truncate max-w-[140px] sm:max-w-none">
+            <h2 className="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight capitalize animate-in slide-in-from-left-4 duration-500 truncate max-w-[140px] sm:max-w-none">
               {activeTab === 'dashboard' ? 'Overview' : activeTab === 'alumni' ? 'Manajemen Alumni' : activeTab === 'admins' ? 'Akun Admin' : 'Pengaturan Sistem'}
             </h2>
           </div>
           
           <div className="flex items-center gap-3 sm:gap-5">
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             {activeTab === 'dashboard' && (
-              <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm anim-zoom-in">
+              <div className="hidden sm:flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm anim-zoom-in">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                <select className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                <select className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                   {years.map(y => <option key={y} value={y}>{y === 'Semua' ? 'Semua Tahun' : `Lulusan ${y}`}</option>)}
                 </select>
               </div>
             )}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 ring-2 ring-white dark:ring-slate-800 cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 ring-2 ring-white cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
               AD
             </div>
           </div>
@@ -968,31 +971,31 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
           {activeTab === 'dashboard' && (
             <div className="anim-slide-up delay-100">
               <AdminStatsCards filteredStudents={filteredStudentsDashboard} />
-              <AdminCharts filteredStudents={filteredStudentsDashboard} totalLulusan={filteredStudentsDashboard.length} theme={theme} />
+              <AdminCharts filteredStudents={filteredStudentsDashboard} totalLulusan={filteredStudentsDashboard.length} />
               
-              <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-3xl border border-slate-200/70 dark:border-white/5 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none mt-8 overflow-hidden anim-slide-up delay-300">
-                <div className="p-6 border-b border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between">
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] mt-8 overflow-hidden anim-slide-up delay-300">
+                <div className="p-6 border-b border-slate-200/60 bg-slate-50/80 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5"><Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" /></div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">Log Aktivitas Cloud</h3>
+                    <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200/60"><Activity className="w-5 h-5 text-blue-600" /></div>
+                    <h3 className="font-bold text-slate-900 text-base sm:text-lg">Log Aktivitas Cloud</h3>
                   </div>
-                  <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-500/20">
+                  <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/50">
                      <Database className="w-3 h-3 animate-pulse" /> Firebase Aktif
                   </div>
                 </div>
-                <div className="divide-y divide-slate-100/60 dark:divide-white/5 max-h-[400px] overflow-y-auto">
+                <div className="divide-y divide-slate-100/60 max-h-[400px] overflow-y-auto">
                   {(activities || []).map(act => (
-                    <div key={act.id} className="p-4 sm:p-5 px-4 sm:px-6 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex gap-3 sm:gap-4 items-start group">
-                      <div className={`p-2 sm:p-2.5 rounded-2xl mt-0.5 flex-shrink-0 ${act.type === 'system' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'} group-hover:scale-110 transition-transform`}>
+                    <div key={act.id} className="p-4 sm:p-5 px-4 sm:px-6 hover:bg-slate-50 transition-colors flex gap-3 sm:gap-4 items-start group">
+                      <div className={`p-2 sm:p-2.5 rounded-2xl mt-0.5 flex-shrink-0 ${act.type === 'system' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'} group-hover:scale-110 transition-transform`}>
                         {act.type === 'system' ? <Settings className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{act.message}</p>
-                        <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1 sm:mt-1.5 font-medium">{act.time}</p>
+                        <p className="text-sm font-semibold text-slate-800">{act.message}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-400 mt-1 sm:mt-1.5 font-medium">{act.time}</p>
                       </div>
                     </div>
                   ))}
-                  {(!activities || activities.length === 0) && <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">Belum ada aktivitas di Cloud Database.</div>}
+                  {(!activities || activities.length === 0) && <div className="p-8 text-center text-slate-400 font-medium">Belum ada aktivitas di Cloud Database.</div>}
                 </div>
               </div>
             </div>
@@ -1005,14 +1008,14 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                   <div className="relative w-full sm:w-auto">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input type="text" placeholder="Cari Nama / NISN..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2.5 w-full sm:w-64 bg-white dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none font-medium text-slate-800 dark:text-slate-200 transition-all shadow-sm"
+                      className="pl-10 pr-4 py-2.5 w-full sm:w-64 bg-white border border-slate-300/60 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none font-medium text-slate-800 transition-all shadow-sm"
                     />
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto select-none">
-                    <select className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none cursor-pointer shadow-sm" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                    <select className="flex-1 sm:flex-none px-3 py-2.5 bg-white border border-slate-300/60 rounded-xl text-xs sm:text-sm font-bold text-slate-700 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none cursor-pointer shadow-sm" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                       {years.map(y => <option key={y} value={y}>{y === 'Semua' ? 'Sem. Tahun' : `Tahun ${y}`}</option>)}
                     </select>
-                    <select className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none cursor-pointer shadow-sm" value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)}>
+                    <select className="flex-1 sm:flex-none px-3 py-2.5 bg-white border border-slate-300/60 rounded-xl text-xs sm:text-sm font-bold text-slate-700 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none cursor-pointer shadow-sm" value={filterJurusan} onChange={(e) => setFilterJurusan(e.target.value)}>
                       <option value="Semua">Sem. Jurusan</option><option value="TKJ">TKJ</option><option value="TKR">TKR</option><option value="MP">MP</option>
                     </select>
                   </div>
@@ -1021,32 +1024,32 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                   <input type="file" accept=".csv" ref={fileInputRef} onChange={handleImportCSV} className="hidden" />
                   
                   {/* Export Buttons */}
-                  <button onClick={exportToExcel} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition shadow-sm">
+                  <button onClick={exportToExcel} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-emerald-200 text-emerald-700 bg-emerald-50 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-100 transition shadow-sm">
                     <FileSpreadsheet className="w-4 h-4" /> Excel
                   </button>
-                  <button onClick={exportToPDF} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 rounded-xl text-xs sm:text-sm font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition shadow-sm">
+                  <button onClick={exportToPDF} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-rose-200 text-rose-700 bg-rose-50 rounded-xl text-xs sm:text-sm font-bold hover:bg-rose-100 transition shadow-sm">
                     <Printer className="w-4 h-4" /> PDF
                   </button>
 
-                  <div className="hidden xl:block w-px bg-slate-200 dark:bg-slate-700 mx-1 my-1"></div>
+                  <div className="hidden xl:block w-px bg-slate-200 mx-1 my-1"></div>
 
-                  <button onClick={downloadTemplate} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm">
+                  <button onClick={downloadTemplate} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-slate-200 text-slate-700 bg-white rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 transition shadow-sm">
                     <Download className="w-4 h-4" /> Template
                   </button>
-                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition shadow-sm">
+                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-blue-200 text-blue-700 bg-blue-50 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-100 transition shadow-sm">
                     <Upload className="w-4 h-4" /> Import CSV
                   </button>
-                  <button onClick={() => setIsAddModalOpen(true)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 dark:hover:bg-blue-600 transition shadow-md hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 w-full sm:w-auto mt-2 sm:mt-0">
+                  <button onClick={() => setIsAddModalOpen(true)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 transition shadow-md hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 w-full sm:w-auto mt-2 sm:mt-0">
                     <Plus className="w-4 h-4" /> Tambah Manual
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-3xl border border-slate-200/70 dark:border-white/5 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none overflow-hidden anim-slide-up delay-200">
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] overflow-hidden anim-slide-up delay-200">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-sm min-w-[600px]">
                     <thead>
-                      <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5">
+                      <tr className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">NISN</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Nama Lengkap</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Jurusan</th>
@@ -1054,34 +1057,40 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px] text-center">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                    <tbody className="divide-y divide-slate-50">
                       {filteredStudentsTable.map((siswa) => (
-                        <tr key={siswa.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors group">
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-slate-600 dark:text-slate-300">{siswa?.nisn}</td>
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-bold text-slate-900 dark:text-white truncate max-w-[150px]">{siswa?.nama}</td>
+                        <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-slate-600">{siswa?.nisn}</td>
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-bold text-slate-900 truncate max-w-[150px]">{siswa?.nama}</td>
                           <td className="py-3 sm:py-4 px-4 sm:px-6">
-                            <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold">{siswa?.jurusan}</span>
+                            <span className="bg-slate-100 text-slate-600 px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold">{siswa?.jurusan}</span>
                           </td>
                           <td className="py-3 sm:py-4 px-4 sm:px-6">
                             {siswa?.isFilled ? (
-                              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-50 border border-emerald-200/50 text-emerald-600 whitespace-nowrap">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 hidden sm:block"></div> Lengkap
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 border border-amber-200/50 text-amber-600 whitespace-nowrap">
                                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 hidden sm:block"></div> Belum Isi
                               </span>
                             )}
                           </td>
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 text-center">
-                            <button onClick={() => setEditingStudent(siswa)} className="p-1.5 sm:p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all" title="Edit Data">
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 text-center whitespace-nowrap">
+                            <button onClick={() => setEditingStudent(siswa)} className="p-1.5 sm:p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="Edit Data">
                               <Edit className="w-4 h-4" />
                             </button>
+                            
+                            {/* PERBAIKAN: Tombol Hapus memicu Popup Modal khusus */}
+                            <button onClick={() => setStudentToDelete(siswa)} className="p-1.5 sm:p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all ml-1 sm:ml-2" title="Hapus Data">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
                           </td>
                         </tr>
                       ))}
                       {filteredStudentsTable.length === 0 && (
-                        <tr><td colSpan="5" className="py-12 text-center text-slate-400 font-medium bg-slate-50/50 dark:bg-slate-900/50">Tidak ada data alumni ditemukan.</td></tr>
+                        <tr><td colSpan="5" className="py-12 text-center text-slate-400 font-medium bg-slate-50/50">Tidak ada data alumni ditemukan.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -1094,46 +1103,45 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
             <div className="anim-slide-up delay-100">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 select-none">
                 <div>
-                  <h3 className="font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-white">Manajemen Akun Admin</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Kelola akun yang memiliki hak akses penuh ke sistem ini.</p>
+                  <h3 className="font-extrabold text-xl sm:text-2xl text-slate-900">Manajemen Akun Admin</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Kelola akun yang memiliki hak akses penuh ke sistem ini.</p>
                 </div>
-                <button onClick={() => { setAdminFormData({username:'', password:''}); setEditingAdmin(null); setIsAdminModalOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                <button onClick={() => { setAdminFormData({username:'', password:''}); setEditingAdmin(null); setIsAdminModalOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-md hover:shadow-lg hover:-translate-y-0.5">
                   <UserPlus className="w-4 h-4" /> Tambah Admin Baru
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-3xl border border-slate-200/70 dark:border-white/5 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none overflow-hidden">
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-sm min-w-[500px]">
                     <thead>
-                      <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5 select-none">
+                      <tr className="bg-slate-50/50 text-slate-500 border-b border-slate-100 select-none">
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[11px]">Username</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[11px]">Password</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[11px] text-right">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                    <tbody className="divide-y divide-slate-50">
                       {(admins || []).map((admin) => (
-                        <tr key={admin.username} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-colors group">
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-bold text-slate-900 dark:text-white">{admin.username}</td>
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-mono text-slate-500 dark:text-slate-400 tracking-widest">••••••••</td>
+                        <tr key={admin.username} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-bold text-slate-900">{admin.username}</td>
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-mono text-slate-500 tracking-widest">••••••••</td>
                           <td className="py-3 sm:py-4 px-4 sm:px-6 text-right select-none whitespace-nowrap">
-                            <button onClick={() => { setAdminFormData({username: admin.username, password: admin.password}); setEditingAdmin(admin.username); setIsAdminModalOpen(true); }} className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all mr-1 sm:mr-2" title="Edit Password">
+                            <button onClick={() => { setAdminFormData({username: admin.username, password: admin.password}); setEditingAdmin(admin.username); setIsAdminModalOpen(true); }} className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all mr-1 sm:mr-2" title="Edit Password">
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button onClick={async () => {
+
+                            {/* PERBAIKAN: Tombol Hapus memicu Popup Modal khusus */}
+                            <button onClick={() => {
                               if(admins.length <= 1) {
                                 showToast("Tidak bisa menghapus akun admin terakhir!", "error");
                                 return;
                               }
-                              if(window.confirm(`Yakin ingin menghapus admin ${admin.username}?`)) {
-                                await onDeleteAdminDB(admin.username);
-                                onAddActivityDB(`Admin ${admin.username} telah dihapus.`, 'system');
-                                showToast("Akun admin berhasil dihapus", "success");
-                              }
-                            }} className="p-1.5 sm:p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all" title="Hapus Admin">
+                              setAdminToDelete(admin);
+                            }} className="p-1.5 sm:p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="Hapus Admin">
                               <Trash2 className="w-4 h-4" />
                             </button>
+
                           </td>
                         </tr>
                       ))}
@@ -1146,10 +1154,10 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
 
           {activeTab === 'settings' && (
             <div className="max-w-4xl anim-slide-up delay-100">
-              <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-3xl border border-slate-200/70 dark:border-white/5 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none mb-6 sm:mb-8 overflow-hidden">
-                <div className="p-5 sm:p-6 border-b border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-slate-900/50 flex gap-3 items-center select-none">
-                  <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5"><Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" /></div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">Profil Instansi (Cloud Config)</h3>
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] mb-6 sm:mb-8 overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-slate-200/60 bg-slate-50/80 flex gap-3 items-center select-none">
+                  <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200/60"><Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" /></div>
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg">Profil Instansi (Cloud Config)</h3>
                 </div>
                 <form onSubmit={handleSaveSettings} className="p-5 sm:p-8 space-y-6 sm:space-y-8">
                   
@@ -1159,55 +1167,55 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                   </div>
                   
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 sm:mb-3 ml-1">Logo Sekolah</label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl flex items-center justify-center bg-white dark:bg-slate-800 overflow-hidden relative group flex-shrink-0">
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2 sm:mb-3 ml-1">Logo Sekolah</label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-white overflow-hidden relative group flex-shrink-0">
                         {tempSettings?.logo ? (
                           <img src={tempSettings.logo} alt="Preview Logo" className="w-full h-full object-contain p-2" />
-                        ) : <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300 dark:text-slate-600" />}
+                        ) : <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-slate-300" />}
                       </div>
                       <div className="w-full">
                         <input type="file" accept="image/*" id="logo-upload" onChange={handleLogoChange} className="hidden" />
-                        <label htmlFor="logo-upload" className="w-full sm:w-auto text-center block px-4 sm:px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-xs sm:text-sm transition-all hover:border-slate-300 select-none">
+                        <label htmlFor="logo-upload" className="w-full sm:w-auto text-center block px-4 sm:px-5 py-2.5 bg-white border border-slate-200 shadow-sm text-slate-700 font-bold rounded-xl hover:bg-slate-50 cursor-pointer text-xs sm:text-sm transition-all hover:border-slate-300 select-none">
                           Pilih Gambar Baru
                         </label>
-                        <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-2 sm:mt-3 font-medium select-none">Format: PNG transparan, maks 1MB.</p>
-                        {tempSettings?.logo && <button type="button" onClick={() => setTempSettings({...tempSettings, logo: null})} className="text-[10px] sm:text-xs text-red-500 dark:text-red-400 font-bold hover:underline mt-1.5 block select-none">Hapus Logo Saat Ini</button>}
+                        <p className="text-[10px] sm:text-xs text-slate-400 mt-2 sm:mt-3 font-medium select-none">Format: PNG transparan, maks 1MB.</p>
+                        {tempSettings?.logo && <button type="button" onClick={() => setTempSettings({...tempSettings, logo: null})} className="text-[10px] sm:text-xs text-red-500 font-bold hover:underline mt-1.5 block select-none">Hapus Logo Saat Ini</button>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-4 sm:pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end">
-                    <button type="submit" className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 sm:py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-md hover:-translate-y-0.5 active:scale-95 select-none">
+                  <div className="pt-4 sm:pt-6 border-t border-slate-100 flex justify-end">
+                    <button type="submit" className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 sm:py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-md hover:-translate-y-0.5 active:scale-95 select-none">
                       <Save className="w-4 h-4" /> Simpan & Sinkronisasi
                     </button>
                   </div>
                 </form>
               </div>
 
-              <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-3xl border border-slate-200/70 dark:border-white/5 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none overflow-hidden anim-slide-up delay-200">
-                <div className="p-5 sm:p-6 border-b border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-slate-900/50 flex gap-3 items-center select-none">
-                  <div className="bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5"><Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" /></div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">Keamanan Data (Backup Lokal)</h3>
+              <div className="bg-white rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] overflow-hidden anim-slide-up delay-200">
+                <div className="p-5 sm:p-6 border-b border-slate-200/60 bg-slate-50/80 flex gap-3 items-center select-none">
+                  <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200/60"><Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" /></div>
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg">Keamanan Data (Backup Lokal)</h3>
                 </div>
                 <div className="p-5 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                  <div className="p-5 sm:p-6 border border-slate-100 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800/50 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-3 sm:mb-4 text-blue-700 dark:text-blue-400 font-extrabold text-base sm:text-lg select-none">
-                      <div className="bg-blue-50 dark:bg-blue-500/10 p-2 rounded-xl"><Download className="w-4 h-4 sm:w-5 sm:h-5" /></div> Export Data
+                  <div className="p-5 sm:p-6 border border-slate-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3 sm:mb-4 text-blue-700 font-extrabold text-base sm:text-lg select-none">
+                      <div className="bg-blue-50 p-2 rounded-xl"><Download className="w-4 h-4 sm:w-5 sm:h-5" /></div> Export Data
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5 sm:mb-6 font-medium leading-relaxed">Unduh seluruh profil, data alumni, dan riwayat sistem ke format aman JSON. Lakukan pencadangan secara berkala.</p>
-                    <button onClick={handleBackupData} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 font-bold rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition select-none text-xs sm:text-sm">
+                    <p className="text-xs sm:text-sm text-slate-500 mb-5 sm:mb-6 font-medium leading-relaxed">Unduh seluruh profil, data alumni, dan riwayat sistem ke format aman JSON. Lakukan pencadangan secara berkala.</p>
+                    <button onClick={handleBackupData} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition select-none text-xs sm:text-sm">
                       <FileJson className="w-4 h-4" /> Unduh Cadangan JSON
                     </button>
                   </div>
 
-                  <div className="p-5 sm:p-6 border border-orange-100 dark:border-orange-500/20 rounded-2xl bg-orange-50/30 dark:bg-orange-500/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-3 sm:mb-4 text-orange-700 dark:text-orange-400 font-extrabold text-base sm:text-lg select-none">
-                      <div className="bg-orange-100/50 dark:bg-orange-500/10 p-2 rounded-xl"><Upload className="w-4 h-4 sm:w-5 sm:h-5" /></div> Restore Data
+                  <div className="p-5 sm:p-6 border border-orange-100 rounded-2xl bg-orange-50/30 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3 sm:mb-4 text-orange-700 font-extrabold text-base sm:text-lg select-none">
+                      <div className="bg-orange-100/50 p-2 rounded-xl"><Upload className="w-4 h-4 sm:w-5 sm:h-5" /></div> Restore Data
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5 sm:mb-6 font-medium leading-relaxed">Kembalikan data dari file cadangan. <span className="text-orange-600 dark:text-orange-400 font-bold">Peringatan:</span> Data cloud saat ini akan ditimpa.</p>
+                    <p className="text-xs sm:text-sm text-slate-500 mb-5 sm:mb-6 font-medium leading-relaxed">Kembalikan data dari file cadangan. <span className="text-orange-600 font-bold">Peringatan:</span> Data cloud saat ini akan ditimpa.</p>
                     <input type="file" accept=".json" ref={restoreFileRef} onChange={handleFileSelectRestore} className="hidden" />
-                    <button onClick={() => restoreFileRef.current?.click()} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-orange-600 dark:bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-700 transition shadow-md select-none text-xs sm:text-sm">
+                    <button onClick={() => restoreFileRef.current?.click()} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition shadow-md select-none text-xs sm:text-sm">
                       <Upload className="w-4 h-4" /> Import Cadangan
                     </button>
                   </div>
@@ -1222,27 +1230,79 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
         
         {/* Modal Konfirmasi Restore */}
         {pendingRestoreData && (
-          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] anim-fade-in select-none">
-             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-8 text-center anim-zoom-in border border-white/10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] anim-fade-in select-none">
+             <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-8 text-center anim-zoom-in border border-white/10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                   <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">Tindakan Berbahaya</h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 px-2">Anda akan menimpa seluruh data Database Cloud dengan file cadangan lokal ini. Tindakan ini tidak dapat dibatalkan. Lanjutkan?</p>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">Tindakan Berbahaya</h3>
+                <p className="text-xs sm:text-sm text-slate-500 mb-6 sm:mb-8 px-2">Anda akan menimpa seluruh data Database Cloud dengan file cadangan lokal ini. Tindakan ini tidak dapat dibatalkan. Lanjutkan?</p>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                   <button onClick={() => setPendingRestoreData(null)} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors text-sm">Batal</button>
-                   <button onClick={confirmRestore} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-md hover:shadow-lg text-sm">Ya, Timpa Data</button>
+                   <button onClick={() => setPendingRestoreData(null)} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors text-sm">Batal</button>
+                   <button onClick={confirmRestore} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-md hover:shadow-lg text-sm">Ya, Timpa Data</button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Modal Konfirmasi Hapus Siswa */}
+        {studentToDelete && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] anim-fade-in select-none">
+             <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-8 text-center anim-zoom-in border border-white/10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">Hapus Data Alumni</h3>
+                <p className="text-xs sm:text-sm text-slate-500 mb-6 sm:mb-8 px-2">Anda yakin ingin menghapus permanen data alumni <strong>{studentToDelete.nama}</strong>? Data yang dihapus tidak dapat dikembalikan.</p>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                   <button onClick={() => setStudentToDelete(null)} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors text-sm">Batal</button>
+                   <button onClick={async () => {
+                     try {
+                       await onDeleteStudent(String(studentToDelete.nisn));
+                       onAddActivityDB(`Data alumni ${studentToDelete.nama} telah dihapus.`, 'system');
+                       showToast("Data alumni berhasil dihapus", "success");
+                     } catch (e) {
+                       showToast("Gagal menghapus data", "error");
+                     }
+                     setStudentToDelete(null);
+                   }} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-md hover:shadow-lg text-sm">Ya, Hapus</button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Modal Konfirmasi Hapus Admin */}
+        {adminToDelete && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] anim-fade-in select-none">
+             <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-8 text-center anim-zoom-in border border-white/10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 sm:mb-3">Hapus Akun Admin</h3>
+                <p className="text-xs sm:text-sm text-slate-500 mb-6 sm:mb-8 px-2">Anda yakin ingin mencabut hak akses dari akun <strong>{adminToDelete.username}</strong>?</p>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                   <button onClick={() => setAdminToDelete(null)} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors text-sm">Batal</button>
+                   <button onClick={async () => {
+                     try {
+                       await onDeleteAdminDB(String(adminToDelete.username));
+                       onAddActivityDB(`Admin ${adminToDelete.username} telah dihapus.`, 'system');
+                       showToast("Akun admin berhasil dihapus", "success");
+                     } catch (e) {
+                       showToast("Gagal menghapus admin", "error");
+                     }
+                     setAdminToDelete(null);
+                   }} className="w-full flex-1 px-6 py-3 sm:py-3.5 font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-md hover:shadow-lg text-sm">Ya, Hapus</button>
                 </div>
              </div>
           </div>
         )}
 
         {isAddModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl border border-white/10 overflow-hidden anim-zoom-in flex flex-col max-h-[90vh]">
-              <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center select-none flex-shrink-0">
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">Tambah Data Siswa</h2>
-                <button onClick={() => setIsAddModalOpen(false)} className="bg-white dark:bg-slate-800 p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full shadow-sm border border-slate-200 dark:border-slate-700 transition-all hover:scale-105">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-white/10 overflow-hidden anim-zoom-in flex flex-col max-h-[90vh]">
+              <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center select-none flex-shrink-0">
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900">Tambah Data Siswa</h2>
+                <button onClick={() => setIsAddModalOpen(false)} className="bg-white p-2 text-slate-400 hover:text-slate-800 rounded-full shadow-sm border border-slate-200 transition-all hover:scale-105">
                   <FileX className="w-4 h-4" />
                 </button>
               </div>
@@ -1250,8 +1310,8 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                 <FormInput label="Nomor NISN" name="nisn" value={newStudentData.nisn} onChange={e => setNewStudentData({...newStudentData, nisn: e.target.value})} required placeholder="Ex: 00456213" />
                 <FormInput label="Nama Lengkap" name="nama" value={newStudentData.nama} onChange={e => setNewStudentData({...newStudentData, nama: e.target.value})} required />
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Jurusan</label>
-                  <select name="jurusan" value={newStudentData.jurusan} onChange={e => setNewStudentData({...newStudentData, jurusan: e.target.value})} className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm text-sm">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1">Jurusan</label>
+                  <select name="jurusan" value={newStudentData.jurusan} onChange={e => setNewStudentData({...newStudentData, jurusan: e.target.value})} className="w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 shadow-sm text-sm">
                     <option value="TKJ">Teknik Komputer & Jaringan (TKJ)</option>
                     <option value="TKR">Teknik Kendaraan Ringan (TKR)</option>
                     <option value="MP">Manajemen Perkantoran (MP)</option>
@@ -1260,7 +1320,7 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                 <FormInput label="Tahun Kelulusan" type="number" name="tahunLulus" value={newStudentData.tahunLulus} onChange={e => setNewStudentData({...newStudentData, tahunLulus: e.target.value})} required />
                 
                 <div className="pt-4 sm:pt-6 mt-2 sm:mt-4 flex gap-3 justify-end select-none">
-                  <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 sm:flex-none px-6 py-2.5 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm">Batal</button>
+                  <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 sm:flex-none px-6 py-2.5 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm">Batal</button>
                   <button type="submit" className="flex-1 sm:flex-none px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95 text-sm">Simpan</button>
                 </div>
               </form>
@@ -1270,11 +1330,11 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
 
         {/* Modal Tambah/Edit Admin */}
         {isAdminModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl border border-white/10 overflow-hidden anim-zoom-in">
-              <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center select-none">
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">{editingAdmin ? 'Perbarui Password Admin' : 'Tambah Admin Baru'}</h2>
-                <button onClick={() => setIsAdminModalOpen(false)} className="bg-white dark:bg-slate-800 p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full shadow-sm border border-slate-200 dark:border-slate-700 transition-all hover:scale-105">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-white/10 overflow-hidden anim-zoom-in">
+              <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center select-none">
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900">{editingAdmin ? 'Perbarui Password Admin' : 'Tambah Admin Baru'}</h2>
+                <button onClick={() => setIsAdminModalOpen(false)} className="bg-white p-2 text-slate-400 hover:text-slate-800 rounded-full shadow-sm border border-slate-200 transition-all hover:scale-105">
                   <FileX className="w-4 h-4" />
                 </button>
               </div>
@@ -1293,7 +1353,7 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                 <FormInput label="Password (Isikan teks saja)" name="password" value={adminFormData.password} onChange={e => setAdminFormData({...adminFormData, password: e.target.value})} required placeholder="Minimal 6 karakter" />
                 
                 <div className="pt-4 sm:pt-6 mt-2 sm:mt-4 flex gap-3 justify-end select-none">
-                  <button type="button" onClick={() => setIsAdminModalOpen(false)} className="flex-1 sm:flex-none px-6 py-2.5 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm">Batal</button>
+                  <button type="button" onClick={() => setIsAdminModalOpen(false)} className="flex-1 sm:flex-none px-6 py-2.5 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm">Batal</button>
                   <button type="submit" className="flex-1 sm:flex-none px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95 text-sm">Simpan Akun</button>
                 </div>
               </form>
@@ -1302,14 +1362,14 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
         )}
 
         {editingStudent && (
-          <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
-            <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-white/10 anim-zoom-in">
-              <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md z-10 select-none">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 anim-fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-white/10 anim-zoom-in">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-10 select-none">
                 <div>
-                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">Perbarui Status Alumni</h2>
-                  <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1 truncate max-w-[200px] sm:max-w-none">Siswa: {editingStudent?.nama || '-'}</p>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900">Perbarui Status Alumni</h2>
+                  <p className="text-xs sm:text-sm font-medium text-slate-500 mt-0.5 sm:mt-1 truncate max-w-[200px] sm:max-w-none">Siswa: {editingStudent?.nama || '-'}</p>
                 </div>
-                <button onClick={() => setEditingStudent(null)} className="bg-white dark:bg-slate-800 p-2 sm:p-2.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full shadow-sm border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 flex-shrink-0">
+                <button onClick={() => setEditingStudent(null)} className="bg-white p-2 sm:p-2.5 text-slate-400 hover:text-slate-800 rounded-full shadow-sm border border-slate-200 transition-all hover:scale-105 flex-shrink-0">
                   <FileX className="w-5 h-5" />
                 </button>
               </div>
@@ -1332,7 +1392,152 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
   );
 }
 
-// Sidebar Button Helper
+// ================= KOMPONEN FORM SISWA =================
+function StudentForm({ student, appSettings, hasLoadedSettings, onLogout, onSave, showToast }) {
+  return (
+    <div className="min-h-screen bg-slate-100/50 flex flex-col transition-colors duration-500 anim-fade-in">
+      <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm sticky top-0 z-50 transition-colors select-none h-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex justify-between h-full items-center">
+            <div className="flex items-center gap-3">
+              {appSettings?.logo ? (
+                <div className="bg-white/50 p-1 rounded-xl shadow-sm"><img src={appSettings.logo} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-sm" /></div>
+              ) : (
+                <div className="bg-blue-600 p-2 sm:p-2.5 rounded-xl shadow-lg"><GraduationCap className="text-white w-5 h-5 sm:w-6 sm:h-6" /></div>
+              )}
+              <div>
+                <h1 className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight leading-none sm:leading-normal">Alumni Workspace</h1>
+                <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5 sm:mt-1 truncate max-w-[120px] sm:max-w-none">{appSettings?.schoolName || 'BKK SMK'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-5">
+               <span className="text-xs sm:text-sm font-bold text-slate-600 hidden sm:block bg-slate-100 px-4 py-1.5 rounded-full">{student?.nama || 'Siswa'}</span>
+               <button onClick={onLogout} className="text-xs sm:text-sm text-red-500 font-bold hover:text-red-600 hover:bg-red-50 px-3 sm:px-4 py-2 rounded-full transition-colors flex items-center gap-1.5">
+                 <span className="hidden sm:inline">Keluar Sistem</span>
+                 <LogOut className="w-4 h-4 sm:hidden" />
+               </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-grow w-full anim-slide-up delay-100">
+        {!student?.isFilled ? (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 sm:p-5 rounded-2xl mb-6 sm:mb-8 flex gap-3 sm:gap-4 items-start shadow-sm">
+            <div className="bg-amber-100 p-1.5 sm:p-2 rounded-full mt-0.5 flex-shrink-0"><FileX className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" /></div>
+            <div>
+              <h4 className="font-extrabold text-base sm:text-lg text-amber-900">Pembaruan Data Diperlukan</h4>
+              <p className="text-xs sm:text-sm mt-1 font-medium leading-relaxed opacity-90">Mohon luangkan waktu 2 menit untuk melengkapi data karir Anda saat ini. Data ini membantu BKK dalam sinkronisasi database cloud kami.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 sm:p-5 rounded-2xl mb-6 sm:mb-8 flex gap-3 sm:gap-4 items-start shadow-sm">
+            <div className="bg-emerald-100 p-1.5 sm:p-2 rounded-full mt-0.5 flex-shrink-0"><FileCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" /></div>
+            <div>
+              <h4 className="font-extrabold text-base sm:text-lg text-emerald-900">Profil Tersimpan di Cloud</h4>
+              <p className="text-xs sm:text-sm mt-1 font-medium leading-relaxed opacity-90">Terima kasih telah berpartisipasi. Anda dapat terus memperbarui form ini jika terdapat perubahan status atau tempat kerja di masa depan.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.08)] border border-slate-200/70 p-5 sm:p-12">
+          <div className="mb-8 sm:mb-10 text-center">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Formulir Tracer Study</h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5 sm:mt-2">Pastikan data diisi sesuai dengan kondisi nyata saat ini.</p>
+          </div>
+          <StudentFormContent student={student} onSave={onSave} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentFormContent({ student, onSave, onCancel }) {
+  const [formData, setFormData] = useState({ ...(student || {}) });
+
+  useEffect(() => {
+    setFormData({ ...(student || {}) });
+  }, [student]);
+
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-10">
+      {/* 1: Biodata */}
+      <div className="bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-200/70 relative overflow-hidden group hover:border-blue-400 transition-colors">
+        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-blue-500"></div>
+        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-blue-600 select-none">
+          <div className="bg-blue-100 p-2 rounded-xl"><User className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900">Identitas Diri</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <FormInput label="Nama Lengkap" name="nama" value={formData?.nama || ''} onChange={handleChange} required />
+          <FormInput label="Nomor NISN" name="nisn" value={formData?.nisn || ''} disabled={true} bg="bg-slate-100 text-slate-500 font-bold" />
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 select-none">Jurusan</label>
+            <select name="jurusan" value={formData?.jurusan || 'TKJ'} onChange={handleChange} className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 shadow-sm text-sm">
+              <option value="TKJ">Teknik Komputer & Jaringan (TKJ)</option>
+              <option value="TKR">Teknik Kendaraan Ringan (TKR)</option>
+              <option value="MP">Manajemen Perkantoran (MP)</option>
+            </select>
+          </div>
+          <FormInput label="Tahun Kelulusan" name="tahunLulus" value={formData?.tahunLulus || ''} onChange={handleChange} type="number" required />
+          <FormInput label="No. Handphone / WhatsApp" name="noHp" value={formData?.noHp || ''} onChange={handleChange} required />
+          <FormInput label="Alamat Email Pribadi" name="email" value={formData?.email || ''} onChange={handleChange} type="email" />
+        </div>
+      </div>
+
+      {/* 2: Tempat Kerja */}
+      <div className="bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-200/70 relative overflow-hidden group hover:border-indigo-400 transition-colors">
+        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-indigo-500"></div>
+        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-indigo-600 select-none">
+          <div className="bg-indigo-100 p-2 rounded-xl"><Building className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900">Data Tempat Kerja</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <FormInput label="Nama Perusahaan / Instansi" name="namaPerusahaan" value={formData?.namaPerusahaan || ''} onChange={handleChange} required />
+          <FormInput label="Sektor / Bidang Usaha (Ex: Retail, IT)" name="bidangUsaha" value={formData?.bidangUsaha || ''} onChange={handleChange} required />
+          <div className="md:col-span-2">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 select-none">Alamat Lengkap Perusahaan</label>
+            <textarea name="alamatPerusahaan" value={formData?.alamatPerusahaan || ''} onChange={handleChange} rows="3" className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 shadow-sm resize-none text-sm" required></textarea>
+          </div>
+          <FormInput label="Kontak Perusahaan (HRD/No.Telp)" name="kontakPerusahaan" value={formData?.kontakPerusahaan || ''} onChange={handleChange} />
+        </div>
+      </div>
+
+      {/* 3: Pekerjaan */}
+      <div className="bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-200/70 relative overflow-hidden group hover:border-emerald-400 transition-colors">
+        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-emerald-500"></div>
+        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-emerald-600 select-none">
+          <div className="bg-emerald-100 p-2 rounded-xl"><Briefcase className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900">Spesifikasi Jabatan</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <FormInput label="Posisi / Jabatan Anda" name="jabatan" value={formData?.jabatan || ''} onChange={handleChange} required />
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 select-none">Status Karyawan</label>
+            <select name="statusKerja" value={formData?.statusKerja || ''} onChange={handleChange} className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 shadow-sm text-sm" required>
+              <option value="" disabled hidden>-- Pilih Status --</option>
+              <option value="Tetap">Karyawan Tetap (PKWTT)</option><option value="Kontrak">Karyawan Kontrak (PKWT)</option>
+              <option value="Freelance">Freelance / Harian</option><option value="Magang">Magang / Praktikan</option>
+            </select>
+          </div>
+          <FormInput label="Tanggal Mulai Bekerja" name="tanggalMulai" value={formData?.tanggalMulai || ''} onChange={handleChange} type="date" required />
+          <FormInput label="Estimasi Gaji Bulanan (Opsional)" name="gaji" value={formData?.gaji || ''} onChange={handleChange} type="number" placeholder="Ex: 4500000" />
+        </div>
+      </div>
+
+      <div className="pt-4 sm:pt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end select-none">
+        {onCancel && <button type="button" onClick={onCancel} className="w-full sm:w-auto px-8 py-3.5 bg-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-300 transition-colors text-sm sm:text-base">Batal Edit</button>}
+        <button type="submit" className="w-full sm:w-auto px-10 py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/20 active:scale-95 text-sm sm:text-base">Simpan Data Karir</button>
+      </div>
+    </form>
+  );
+}
+
+// ================= KUMPULAN UI COMPONENT KECIL =================
+
 function SidebarBtn({ icon, label, active, onClick }) {
   return (
     <button onClick={onClick} className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 font-semibold text-sm select-none w-full ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
@@ -1341,20 +1546,27 @@ function SidebarBtn({ icon, label, active, onClick }) {
   );
 }
 
-// Theme Toggle Button Widget
-function ThemeToggle({ theme, toggleTheme }) {
+function StatCard({ icon, title, value, color }) {
+  const c = {
+    blue: 'from-blue-50 to-blue-100/50 text-blue-600 border-blue-100',
+    green: 'from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100',
+    orange: 'from-amber-50 to-amber-100/50 text-amber-600 border-amber-100',
+    indigo: 'from-indigo-50 to-indigo-100/50 text-indigo-600 border-indigo-100'
+  };
+
   return (
-    <button 
-      onClick={toggleTheme} 
-      className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-amber-400 transition-all hover:scale-110 select-none"
-      title="Ubah Tema Warna"
-    >
-      {theme === 'light' ? <Moon className="w-4 h-4 sm:w-5 sm:h-5" /> : <Sun className="w-4 h-4 sm:w-5 sm:h-5" />}
-    </button>
+    <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group select-none">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+        <div className={`p-3 sm:p-4 rounded-2xl bg-gradient-to-br border ${c[color]} group-hover:scale-110 transition-transform duration-300`}>{React.cloneElement(icon, { className: 'w-5 h-5 sm:w-6 sm:h-6' })}</div>
+        <div>
+          <p className="text-[10px] sm:text-sm font-bold text-slate-400 mb-0.5 uppercase tracking-wider">{title}</p>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900">{value}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
-// Stats Cards Admin
 function AdminStatsCards({ filteredStudents }) {
   const t = (filteredStudents || []).length;
   const s = (filteredStudents || []).filter(st => st?.isFilled).length;
@@ -1370,7 +1582,7 @@ function AdminStatsCards({ filteredStudents }) {
   );
 }
 
-function AdminCharts({ filteredStudents, totalLulusan, theme }) {
+function AdminCharts({ filteredStudents, totalLulusan }) {
   const sudahMengisi = (filteredStudents || []).filter(s => s?.isFilled).length;
   const jurusanStats = useMemo(() => {
     const stats = { TKJ: 0, TKR: 0, MP: 0 };
@@ -1382,12 +1594,12 @@ function AdminCharts({ filteredStudents, totalLulusan, theme }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 anim-slide-up delay-200">
-      <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none lg:col-span-1">
-        <h3 className="font-extrabold text-slate-900 dark:text-white mb-8 text-center">Partisipasi Tracer</h3>
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] lg:col-span-1">
+        <h3 className="font-extrabold text-slate-900 mb-8 text-center">Partisipasi Tracer</h3>
         <div className="flex justify-center items-center h-44">
           <div className="relative w-36 h-36">
             <svg className="w-full h-full transform -rotate-90">
-              <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke={theme === 'dark' ? '#1e293b' : '#f1f5f9'} strokeWidth="10%" className="transition-colors" />
+              <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="#f1f5f9" strokeWidth="10%" />
               <circle 
                 cx="50%" cy="50%" r="45%" fill="transparent" stroke="url(#gradient-green)" strokeWidth="10%"
                 strokeLinecap="round"
@@ -1402,215 +1614,47 @@ function AdminCharts({ filteredStudents, totalLulusan, theme }) {
               </defs>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-black text-slate-900 dark:text-white">{totalLulusan === 0 ? 0 : Math.round((sudahMengisi / totalLulusan) * 100)}%</span>
+              <span className="text-3xl font-black text-slate-900">{totalLulusan === 0 ? 0 : Math.round((sudahMengisi / totalLulusan) * 100)}%</span>
             </div>
           </div>
         </div>
-        <div className="flex justify-center gap-6 mt-8 text-sm font-bold text-slate-500 dark:text-slate-400">
+        <div className="flex justify-center gap-6 mt-8 text-sm font-bold text-slate-500">
           <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Selesai</div>
-          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-600"></div> Pending</div>
+          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-200"></div> Pending</div>
         </div>
       </div>
-      <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none lg:col-span-2">
-        <h3 className="font-extrabold text-slate-900 dark:text-white mb-4">Serapan Industri Berdasarkan Jurusan</h3>
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] lg:col-span-2">
+        <h3 className="font-extrabold text-slate-900 mb-4">Serapan Industri Berdasarkan Jurusan</h3>
         <div className="h-52 relative w-full">
-          <SimpleBarChart data={jurusanStats} categories={['TKJ', 'TKR', 'MP']} theme={theme} />
+          <SimpleBarChart data={jurusanStats} categories={['TKJ', 'TKR', 'MP']} />
         </div>
       </div>
     </div>
   );
 }
 
-// ================= KOMPONEN FORM SISWA =================
-function StudentForm({ student, appSettings, theme, toggleTheme, onLogout, onSave, showToast }) {
-  return (
-    <div className="min-h-screen bg-slate-100/50 dark:bg-[#0b1120] flex flex-col transition-colors duration-500 anim-fade-in">
-      <nav className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-white/5 shadow-sm sticky top-0 z-50 transition-colors select-none">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <div className="flex items-center gap-3">
-              {appSettings?.logo ? (
-                <div className="bg-white/50 dark:bg-slate-800 p-1 rounded-xl shadow-sm"><img src={appSettings.logo} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-sm" /></div>
-              ) : (
-                <div className="bg-blue-600 p-2 sm:p-2.5 rounded-xl shadow-lg"><GraduationCap className="text-white w-5 h-5 sm:w-6 sm:h-6" /></div>
-              )}
-              <div>
-                <h1 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight leading-none sm:leading-normal">Alumni Workspace</h1>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 sm:mt-1 truncate max-w-[120px] sm:max-w-none">{appSettings?.schoolName || 'BKK SMK'}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-5">
-               <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-               <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 hidden sm:block bg-slate-100 dark:bg-slate-800 px-4 py-1.5 rounded-full">{student?.nama || 'Siswa'}</span>
-               <button onClick={onLogout} className="text-xs sm:text-sm text-red-500 font-bold hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 sm:px-4 py-2 rounded-full transition-colors flex items-center gap-1.5">
-                 <span className="hidden sm:inline">Keluar Sistem</span>
-                 <LogOut className="w-4 h-4 sm:hidden" />
-               </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-grow w-full anim-slide-up delay-100">
-        {!student?.isFilled ? (
-          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 sm:p-5 rounded-2xl mb-6 sm:mb-8 flex gap-3 sm:gap-4 items-start shadow-sm">
-            <div className="bg-amber-100 dark:bg-amber-500/20 p-1.5 sm:p-2 rounded-full mt-0.5 flex-shrink-0"><FileX className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" /></div>
-            <div>
-              <h4 className="font-extrabold text-base sm:text-lg text-amber-900 dark:text-amber-300">Pembaruan Data Diperlukan</h4>
-              <p className="text-xs sm:text-sm mt-1 font-medium leading-relaxed opacity-90">Mohon luangkan waktu 2 menit untuk melengkapi data karir Anda saat ini. Data ini membantu BKK dalam sinkronisasi database cloud kami.</p>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-400 p-4 sm:p-5 rounded-2xl mb-6 sm:mb-8 flex gap-3 sm:gap-4 items-start shadow-sm">
-            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-1.5 sm:p-2 rounded-full mt-0.5 flex-shrink-0"><FileCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" /></div>
-            <div>
-              <h4 className="font-extrabold text-base sm:text-lg text-emerald-900 dark:text-emerald-300">Profil Tersimpan di Cloud</h4>
-              <p className="text-xs sm:text-sm mt-1 font-medium leading-relaxed opacity-90">Terima kasih telah berpartisipasi. Anda dapat terus memperbarui form ini jika terdapat perubahan status atau tempat kerja di masa depan.</p>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl rounded-[2rem] shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none border border-slate-200/70 dark:border-white/5 p-5 sm:p-12">
-          <div className="mb-8 sm:mb-10 text-center">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Formulir Tracer Study</h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1.5 sm:mt-2">Pastikan data diisi sesuai dengan kondisi nyata saat ini.</p>
-          </div>
-          <StudentFormContent student={student} onSave={onSave} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StudentFormContent({ student, onSave, onCancel }) {
-  const [formData, setFormData] = useState({ ...(student || {}) });
-
-  // PERBAIKAN BUG CACHE (Data Siswa): Sync ulang data jika prop 'student' berubah dari luar
-  useEffect(() => {
-    setFormData({ ...(student || {}) });
-  }, [student]);
-
-  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-10">
-      {/* 1: Biodata */}
-      <div className="bg-slate-50 dark:bg-slate-900/50 p-5 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-700/50 relative overflow-hidden group hover:border-blue-500/50 transition-colors">
-        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-blue-500"></div>
-        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-blue-600 dark:text-blue-400 select-none">
-          <div className="bg-blue-100 dark:bg-blue-500/20 p-2 rounded-xl"><User className="w-4 h-4 sm:w-5 sm:h-5" /></div>
-          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">Identitas Diri</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <FormInput label="Nama Lengkap" name="nama" value={formData?.nama || ''} onChange={handleChange} required />
-          <FormInput label="Nomor NISN" name="nisn" value={formData?.nisn || ''} disabled={true} bg="bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold" />
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 select-none">Jurusan</label>
-            <select name="jurusan" value={formData?.jurusan || 'TKJ'} onChange={handleChange} className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm text-sm">
-              <option value="TKJ">Teknik Komputer & Jaringan (TKJ)</option>
-              <option value="TKR">Teknik Kendaraan Ringan (TKR)</option>
-              <option value="MP">Manajemen Perkantoran (MP)</option>
-            </select>
-          </div>
-          <FormInput label="Tahun Kelulusan" name="tahunLulus" value={formData?.tahunLulus || ''} onChange={handleChange} type="number" required />
-          <FormInput label="No. Handphone / WhatsApp" name="noHp" value={formData?.noHp || ''} onChange={handleChange} required />
-          <FormInput label="Alamat Email Pribadi" name="email" value={formData?.email || ''} onChange={handleChange} type="email" />
-        </div>
-      </div>
-
-      {/* 2: Tempat Kerja */}
-      <div className="bg-slate-50 dark:bg-slate-900/50 p-5 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-700/50 relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
-        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-indigo-500"></div>
-        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-indigo-600 dark:text-indigo-400 select-none">
-          <div className="bg-indigo-100 dark:bg-indigo-500/20 p-2 rounded-xl"><Building className="w-4 h-4 sm:w-5 sm:h-5" /></div>
-          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">Data Tempat Kerja</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <FormInput label="Nama Perusahaan / Instansi" name="namaPerusahaan" value={formData?.namaPerusahaan || ''} onChange={handleChange} required />
-          <FormInput label="Sektor / Bidang Usaha (Ex: Retail, IT)" name="bidangUsaha" value={formData?.bidangUsaha || ''} onChange={handleChange} required />
-          <div className="md:col-span-2">
-            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 select-none">Alamat Lengkap Perusahaan</label>
-            <textarea name="alamatPerusahaan" value={formData?.alamatPerusahaan || ''} onChange={handleChange} rows="3" className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm resize-none text-sm" required></textarea>
-          </div>
-          <FormInput label="Kontak Perusahaan (HRD/No.Telp)" name="kontakPerusahaan" value={formData?.kontakPerusahaan || ''} onChange={handleChange} />
-        </div>
-      </div>
-
-      {/* 3: Pekerjaan */}
-      <div className="bg-slate-50 dark:bg-slate-900/50 p-5 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-700/50 relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-emerald-500"></div>
-        <div className="flex items-center gap-3 mb-5 sm:mb-6 text-emerald-600 dark:text-emerald-400 select-none">
-          <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-xl"><Briefcase className="w-4 h-4 sm:w-5 sm:h-5" /></div>
-          <h3 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white">Spesifikasi Jabatan</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <FormInput label="Posisi / Jabatan Anda" name="jabatan" value={formData?.jabatan || ''} onChange={handleChange} required />
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 select-none">Status Karyawan</label>
-            <select name="statusKerja" value={formData?.statusKerja || ''} onChange={handleChange} className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm text-sm" required>
-              <option value="" disabled hidden>-- Pilih Status --</option>
-              <option value="Tetap">Karyawan Tetap (PKWTT)</option><option value="Kontrak">Karyawan Kontrak (PKWT)</option>
-              <option value="Freelance">Freelance / Harian</option><option value="Magang">Magang / Praktikan</option>
-            </select>
-          </div>
-          <FormInput label="Tanggal Mulai Bekerja" name="tanggalMulai" value={formData?.tanggalMulai || ''} onChange={handleChange} type="date" required />
-          <FormInput label="Estimasi Gaji Bulanan (Opsional)" name="gaji" value={formData?.gaji || ''} onChange={handleChange} type="number" placeholder="Ex: 4500000" />
-        </div>
-      </div>
-
-      <div className="pt-4 sm:pt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end select-none">
-        {onCancel && <button type="button" onClick={onCancel} className="w-full sm:w-auto px-8 py-3.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors text-sm sm:text-base">Batal Edit</button>}
-        <button type="submit" className="w-full sm:w-auto px-10 py-3.5 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/20 active:scale-95 text-sm sm:text-base">Simpan Data Karir</button>
-      </div>
-    </form>
-  );
-}
-
-// ================= KUMPULAN UI COMPONENT KECIL =================
-function StatCard({ icon, title, value, color }) {
-  const c = {
-    blue: 'from-blue-50 to-blue-100/50 dark:from-blue-500/10 dark:to-blue-500/5 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20',
-    green: 'from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20',
-    orange: 'from-amber-50 to-amber-100/50 dark:from-amber-500/10 dark:to-amber-500/5 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20',
-    indigo: 'from-indigo-50 to-indigo-100/50 dark:from-indigo-500/10 dark:to-indigo-500/5 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-500/20'
-  };
-
-  return (
-    <div className="bg-white dark:bg-slate-800/80 dark:backdrop-blur-xl p-5 sm:p-7 rounded-3xl border border-slate-200/70 dark:border-white/10 shadow-[0_10px_40px_rgb(0,0,0,0.08)] dark:shadow-none hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group select-none">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
-        <div className={`p-3 sm:p-4 rounded-2xl bg-gradient-to-br border ${c[color]} group-hover:scale-110 transition-transform duration-300`}>{React.cloneElement(icon, { className: 'w-5 h-5 sm:w-6 sm:h-6' })}</div>
-        <div>
-          <p className="text-[10px] sm:text-sm font-bold text-slate-400 mb-0.5 uppercase tracking-wider">{title}</p>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FormInput({ label, name, value, onChange, type = "text", required = false, disabled = false, bg = "bg-white dark:bg-slate-900/50", placeholder="" }) {
+function FormInput({ label, name, value, onChange, type = "text", required = false, disabled = false, bg = "bg-slate-50", placeholder="" }) {
   return (
     <div>
-      <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 select-none">
+      <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 ml-1 select-none">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input 
         type={type} name={name} value={value || ''} onChange={onChange} required={required} disabled={disabled} placeholder={placeholder}
-        className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm ${bg} ${disabled ? 'cursor-not-allowed opacity-70' : ''}`}
+        className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300/60 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 shadow-sm placeholder:font-normal placeholder:text-slate-400 text-sm ${bg} ${disabled ? 'cursor-not-allowed opacity-70 bg-slate-100' : ''}`}
       />
     </div>
   );
 }
 
-function SimpleBarChart({ data, categories, theme }) {
+function SimpleBarChart({ data, categories }) {
   const maxVal = Math.max(...categories.map(c => data[c]), 1);
   const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-purple-500'];
 
   return (
     <div className="flex items-end h-full gap-4 sm:gap-16 px-2 sm:px-12 relative w-full pt-8 pb-4 select-none">
       <div className="absolute inset-0 flex flex-col justify-between pb-10 z-0">
-        {[1, 2, 3, 4].map(i => <div key={i} className="w-full border-b border-slate-200/80 dark:border-slate-700/50 border-dashed transition-colors"></div>)}
+        {[1, 2, 3, 4].map(i => <div key={i} className="w-full border-b border-slate-200/80 border-dashed transition-colors"></div>)}
       </div>
 
       {categories.map((cat, idx) => {
@@ -1619,15 +1663,15 @@ function SimpleBarChart({ data, categories, theme }) {
 
         return (
           <div key={cat} className="flex flex-col items-center flex-1 h-full justify-end group z-10">
-            <div className="opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 mb-2 sm:mb-3 text-[10px] sm:text-sm font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg whitespace-nowrap relative">
+            <div className="opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 mb-2 sm:mb-3 text-[10px] sm:text-sm font-bold text-white bg-slate-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg whitespace-nowrap relative">
               {count} <span className="hidden sm:inline">Siswa</span>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-white rotate-45"></div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
             </div>
             <div 
               style={{ height: height === '0%' ? '6px' : height }} 
               className={`w-full max-w-[40px] sm:max-w-[90px] ${colors[idx % colors.length]} rounded-t-xl sm:rounded-t-2xl transition-all duration-1000 ease-out shadow-lg hover:brightness-110 cursor-pointer`}
             ></div>
-            <span className="text-[10px] sm:text-sm font-extrabold mt-3 sm:mt-4 text-slate-600 dark:text-slate-400 bg-slate-100/80 dark:bg-slate-700/50 px-2 sm:px-3 py-1 rounded-md sm:rounded-lg transition-colors">{cat}</span>
+            <span className="text-[10px] sm:text-sm font-extrabold mt-3 sm:mt-4 text-slate-600 bg-slate-100/80 px-2 sm:px-3 py-1 rounded-md sm:rounded-lg transition-colors">{cat}</span>
           </div>
         );
       })}
