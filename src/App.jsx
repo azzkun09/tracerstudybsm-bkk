@@ -214,6 +214,8 @@ export default function App() {
   };
 
   const addStudentToDB = async (studentData) => {
+  console.log("MASUK FUNCTION");
+
   console.log("USER:", user);
   console.log("DATA:", studentData);
 
@@ -230,12 +232,15 @@ export default function App() {
   }
 
   try {
+    console.log("SEBELUM SIMPAN");
+
     await setDoc(
       doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.nisn),
       studentData,
       { merge: true }
     );
-    console.log("BERHASIL SIMPAN ✅");
+
+    console.log("SETELAH SIMPAN ✅");
   } catch (err) {
     console.error("ERROR FIRESTORE ❌:", err);
     showToast("Gagal simpan ke database!", "error");
