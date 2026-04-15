@@ -10,27 +10,24 @@ import {
 
 // --- FIREBASE INTEGRATION ---
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-// Logika adaptif untuk mendeteksi lingkungan Canvas vs Vercel/Lokal
-const isCanvas = typeof __firebase_config !== 'undefined';
-
-// Konfigurasi Firebase akan memakai config pratinjau saat di Canvas untuk mencegah error auth domain,
-// dan akan langsung menggunakan config asli Bapak saat di-deploy ke Vercel.
-const firebaseConfig = isCanvas ? JSON.parse(__firebase_config) : {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+// Konfigurasi Firebase Asli Milik Bapak (tracer-study-bkk)
+// Tidak lagi menggunakan database sementara Canvas.
+const firebaseConfig = {
+  apiKey: "AIzaSyDuiEVi3xOOVKLM3XOB59B1gfciKFVnp40",
+  authDomain: "tracer-study-bkk.firebaseapp.com",
+  projectId: "tracer-study-bkk",
+  storageBucket: "tracer-study-bkk.firebasestorage.app",
+  messagingSenderId: "151657275377",
+  appId: "1:151657275377:web:f1ad41daead4f5e9bdae50"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = isCanvas && typeof __app_id !== 'undefined' ? __app_id : 'tracer-study-bkk';
+const appId = 'tracer-study-bkk'; // ID Statis Permanen
 
 // --- INITIAL DEFAULT DATA ---
 const initialSettings = {
@@ -46,17 +43,16 @@ const customAnimations = `
   @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
   @keyframes zoomIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
   @keyframes slideInRight { 0% { opacity: 0; transform: translateX(50px); } 100% { opacity: 1; transform: translateX(0); } }
-  @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } } /* ANIMASI KURSOR BARU */
+  @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } } 
   
   .anim-slide-up { animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
   .anim-fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; }
   .anim-zoom-in { animation: zoomIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-  .anim-blink { animation: blinkCursor 0.8s step-end infinite; } /* KELAS KURSOR BARU */
+  .anim-blink { animation: blinkCursor 0.8s step-end infinite; } 
   .toast-enter { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .delay-100 { animation-delay: 100ms; } .delay-200 { animation-delay: 200ms; } .delay-300 { animation-delay: 300ms; }
 `;
 
-// PEMBARUAN: Ditambahkan 'delay' awal agar user sempat melihat animasinya dari awal
 function useTypewriter(text, speed = 80, startDelay = 600) {
   const [displayedText, setDisplayedText] = useState('');
   
@@ -65,7 +61,6 @@ function useTypewriter(text, speed = 80, startDelay = 600) {
     setDisplayedText(''); 
     let intervalId;
     
-    // Tunda mulainya ketikan agar halaman sempat tampil
     const timeoutId = setTimeout(() => {
       intervalId = setInterval(() => {
         setDisplayedText(text.substring(0, i + 1));
@@ -83,7 +78,6 @@ function useTypewriter(text, speed = 80, startDelay = 600) {
   return displayedText;
 }
 
-// Komponen Notifikasi Kustom (Pengganti Alert)
 function CustomToast({ message, type, onClose }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
@@ -118,14 +112,13 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [theme, setTheme] = useState('light'); 
 
-  // Global UI States
   const [toast, setToast] = useState(null); 
+  const [authError, setAuthError] = useState(''); // State khusus error Firebase Bapak
 
-  // Database States
   const [students, setStudents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [appSettings, setAppSettings] = useState(initialSettings);
-  const [admins, setAdmins] = useState([{ username: 'admin', password: 'admin' }]); // State baru untuk admin
+  const [admins, setAdmins] = useState([{ username: 'admin', password: 'admin' }]); 
   const [isLoadingDB, setIsLoadingDB] = useState(true);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
@@ -135,15 +128,11 @@ export default function App() {
     let isMounted = true;
     const initAuth = async () => {
       try {
-        if (isCanvas && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (error) {
         console.error("Auth Error:", error);
         if (isMounted) {
-          showToast("Koneksi Autentikasi Gagal: Pastikan 'Anonymous Sign-in' diaktifkan di Firebase Console.", "error");
+          setAuthError("KONEKSI DITOLAK: Mohon aktifkan fitur 'Anonymous' di menu Authentication Firebase Console Anda agar data bisa disimpan.");
           setIsLoadingDB(false);
         }
       }
@@ -153,8 +142,6 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (isMounted) {
         setUser(currentUser);
-        // PERUBAHAN: Loading langsung dihentikan segera setelah status Auth diketahui
-        // Hal ini membuat aplikasi terasa jauh lebih responsif dan cepat dibuka
         setIsLoadingDB(false);
       }
     });
@@ -167,19 +154,17 @@ export default function App() {
 
   // 2. Real-time Listeners (Firestore)
   useEffect(() => {
-    if (!user) return;
+    if (!user) return; // Jika gagal auth, tidak memanggil database
 
-    // Listen Students
     const studentsRef = collection(db, 'artifacts', appId, 'public', 'data', 'students');
     const unsubStudents = onSnapshot(studentsRef, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
       setStudents(data);
     }, (err) => { 
       console.error(err); 
-      showToast("Gagal memuat data siswa. Pastikan rules Firestore sudah publik.", "error"); 
+      setAuthError("IZIN DATABASE DITOLAK: Pastikan Rules Firestore Anda diset ke mode Publik (Test Mode).");
     });
 
-    // Listen Activities
     const activitiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'activities');
     const unsubActivities = onSnapshot(activitiesRef, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
@@ -187,27 +172,21 @@ export default function App() {
       setActivities(data);
     }, (err) => console.error(err));
 
-    // Listen Settings
-    const settingsRef = collection(db, 'artifacts', appId, 'public', 'data', 'settings');
-    const unsubSettings = onSnapshot(settingsRef, (snapshot) => {
-      let foundSettings = false;
-      snapshot.docs.forEach(docSnap => {
-        if (docSnap.id === 'appSettings') {
-          setAppSettings(docSnap.data());
-          foundSettings = true;
-        }
-      });
-      if (!foundSettings) setAppSettings(initialSettings);
+    const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'appSettings');
+    const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setAppSettings(docSnap.data());
+      } else {
+        setAppSettings(initialSettings);
+      }
     }, (err) => console.error(err));
 
-    // Listen Admins
     const adminsRef = collection(db, 'artifacts', appId, 'public', 'data', 'admins');
     const unsubAdmins = onSnapshot(adminsRef, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
       if (data.length > 0) {
         setAdmins(data);
       } else {
-        // Fallback default agar sistem tidak terkunci
         setAdmins([{ username: 'admin', password: 'admin' }]);
       }
     }, (err) => console.error(err));
@@ -223,44 +202,32 @@ export default function App() {
   // --- DATABASE WRITERS ---
   const addActivityToDB = async (message, type) => {
     if (!user) return;
-    
-    // Menggunakan UUID acak untuk mencegah bentrokan jika banyak user submit bersamaan
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Date.now().toString() + Math.random().toString(36).substring(2);
-      
+    const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString();
     try {
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'activities', id), {
         id, message, type, time: new Date().toLocaleString('id-ID'), timestamp: Date.now()
       });
-    } catch (e) {
-      console.error("Gagal simpan aktivitas", e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const addStudentToDB = async (studentData) => {
     if (!user) {
-      showToast("Gagal menyimpan, Anda belum terkoneksi ke Firebase.", "error");
-      return;
+      showToast("Koneksi terputus. Data gagal disimpan.", "error"); return;
     }
-    // AMAN DARI KEHILANGAN DATA: Tambahkan { merge: true }
-    // Ini memastikan data lama tidak akan hilang terhapus jika terjadi pengiriman data ganda secara bersamaan
+    // PROTEKSI: { merge: true } mencegah penimpaan data antar user
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', studentData.nisn), studentData, { merge: true });
   };
 
   const saveSettingsToDB = async (newSettings) => {
     if (!user) {
-      showToast("Gagal menyimpan, Anda belum terkoneksi ke Firebase.", "error");
-      return;
+      showToast("Koneksi terputus. Data gagal disimpan.", "error"); return;
     }
-    // AMAN DARI KEHILANGAN DATA: Tambahkan { merge: true }
-    // Mencegah dua admin yang mengedit pengaturan bersamaan saling menghapus data satu sama lain
+    // PROTEKSI: { merge: true } mencegah penimpaan data antar user
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'appSettings'), newSettings, { merge: true });
   };
 
   const addAdminToDB = async (adminData) => {
     if (!user) return;
-    // AMAN DARI KEHILANGAN DATA: Tambahkan { merge: true }
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', adminData.username), adminData, { merge: true });
   };
 
@@ -338,6 +305,13 @@ export default function App() {
     <div className={`${theme} antialiased`}>
       <style>{customAnimations}</style>
       
+      {/* SPANDUK PERINGATAN JIKA FIREBASE ERROR */}
+      {authError && (
+        <div className="bg-red-600 text-white p-3 text-center text-sm font-bold shadow-md z-50 relative flex justify-center items-center gap-2">
+          <AlertCircle className="w-5 h-5" /> <span>{authError}</span>
+        </div>
+      )}
+
       {toast && <CustomToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="min-h-screen bg-slate-100 dark:bg-[#0b1120] text-slate-800 dark:text-slate-200 font-sans selection:bg-blue-500/30 transition-colors duration-500 overflow-x-hidden">
@@ -640,17 +614,19 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
   const [newStudentData, setNewStudentData] = useState({ nisn: '', nama: '', jurusan: 'TKJ', tahunLulus: new Date().getFullYear().toString() });
   const fileInputRef = useRef(null);
   
-  // Custom Modal konfirmasi restore
   const restoreFileRef = useRef(null);
   const [pendingRestoreData, setPendingRestoreData] = useState(null);
 
-  // States untuk Admin Management
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [adminFormData, setAdminFormData] = useState({ username: '', password: '' });
 
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingAdmin, setEditingAdmin] = useState(null);
-  const [tempSettings, setTempSettings] = useState(appSettings || {});
+  
+  const [tempSettings, setTempSettings] = useState({});
+  useEffect(() => {
+    setTempSettings(appSettings || {});
+  }, [appSettings]);
 
   const years = useMemo(() => {
     return ['Semua', ...Array.from(new Set((students || []).map(s => s?.tahunLulus).filter(Boolean))).sort((a, b) => b - a)];
@@ -672,7 +648,6 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
     });
   }, [students, selectedYear, filterJurusan, searchQuery]);
 
-  // Logic Handlers (Firestore)
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     if((students || []).find(s => s?.nisn === newStudentData.nisn)) { 
@@ -876,9 +851,7 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
   const confirmRestore = async () => {
     if(!pendingRestoreData) return;
     try {
-      // Restore Settings
       await onSaveSettingsDB(pendingRestoreData.appSettings);
-      // Restore Students (batching might be better but loop is fine for small datasets)
       await Promise.all((pendingRestoreData.students || []).map(s => onAddStudentDB(s)));
       await onAddActivityDB(`Sistem direstore dari file cadangan lokal.`, 'system');
       
@@ -1105,7 +1078,6 @@ function AdminDashboard({ students, activities, appSettings, admins, theme, togg
                                 showToast("Tidak bisa menghapus akun admin terakhir!", "error");
                                 return;
                               }
-                              // Pengganti window.confirm dengan langsung ke logic
                               if(window.confirm(`Yakin ingin menghapus admin ${admin.username}?`)) {
                                 await onDeleteAdminDB(admin.username);
                                 onAddActivityDB(`Admin ${admin.username} telah dihapus.`, 'system');
@@ -1452,6 +1424,11 @@ function StudentForm({ student, appSettings, theme, toggleTheme, onLogout, onSav
 function StudentFormContent({ student, onSave, onCancel }) {
   const [formData, setFormData] = useState({ ...(student || {}) });
 
+  // PERBAIKAN BUG CACHE (Data Siswa): Sync ulang data jika prop 'student' berubah dari luar
+  useEffect(() => {
+    setFormData({ ...(student || {}) });
+  }, [student]);
+
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
 
@@ -1470,7 +1447,9 @@ function StudentFormContent({ student, onSave, onCancel }) {
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1 select-none">Jurusan</label>
             <select name="jurusan" value={formData?.jurusan || 'TKJ'} onChange={handleChange} className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/15 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 dark:text-white shadow-sm">
-              <option value="TKJ">Teknik Komputer & Jaringan (TKJ)</option><option value="TKR">Teknik Kendaraan Ringan (TKR)</option><option value="MP">Manajemen Perkantoran (MP)</option>
+              <option value="TKJ">Teknik Komputer & Jaringan (TKJ)</option>
+              <option value="TKR">Teknik Kendaraan Ringan (TKR)</option>
+              <option value="MP">Manajemen Perkantoran (MP)</option>
             </select>
           </div>
           <FormInput label="Tahun Kelulusan" name="tahunLulus" value={formData?.tahunLulus || ''} onChange={handleChange} type="number" required />
