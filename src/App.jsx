@@ -19,12 +19,12 @@ const isCanvas = typeof __firebase_config !== 'undefined';
 // Konfigurasi Firebase akan memakai config pratinjau saat di Canvas untuk mencegah error auth domain,
 // dan akan langsung menggunakan config asli Bapak saat di-deploy ke Vercel.
 const firebaseConfig = isCanvas ? JSON.parse(__firebase_config) : {
-  apiKey: "AIzaSyDuiEVi3xOOVKLM3XOB59B1gfciKFVnp40",
-  authDomain: "tracer-study-bkk.firebaseapp.com",
-  projectId: "tracer-study-bkk",
-  storageBucket: "tracer-study-bkk.firebasestorage.app",
-  messagingSenderId: "151657275377",
-  appId: "1:151657275377:web:f1ad41daead4f5e9bdae50"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
