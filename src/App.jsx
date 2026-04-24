@@ -362,8 +362,13 @@ function PublicLanding({ students, appSettings, onGoToLogin }) {
     return students.filter(s => s?.tahunLulus === selectedYear);
   }, [students, selectedYear]);
 
+  // Data Alumni yang sukses bekerja untuk di Galeri
+  const workingAlumni = useMemo(() => {
+    return filteredStudents.filter(s => s?.isFilled && s?.namaPerusahaan);
+  }, [filteredStudents]);
+
   const totalLulusan = filteredStudents.length;
-  const sudahMengisi = filteredStudents.filter(s => s?.isFilled).length;
+  const sudahMengisi = workingAlumni.length;
   const jurusanStats = useMemo(() => {
     const stats = { TKJ: 0, TKR: 0, MP: 0 };
     filteredStudents.filter(s => s?.isFilled).forEach(s => {
@@ -389,7 +394,7 @@ function PublicLanding({ students, appSettings, onGoToLogin }) {
               )}
               <div>
                 <h1 className="font-extrabold text-base sm:text-xl text-slate-900 tracking-tight leading-none sm:leading-normal">BKK Tracer Study</h1>
-                <p className="text-[10px] sm:text-sm text-slate-50 font-medium mt-0.5 sm:mt-1 truncate max-w-[150px] sm:max-w-[200px] text-slate-500">{appSettings?.schoolName || 'BKK SMK'}</p>
+                <p className="text-[10px] sm:text-sm text-slate-500 font-medium mt-0.5 sm:mt-1 truncate max-w-[150px] sm:max-w-[200px]">{appSettings?.schoolName || 'BKK SMK'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -467,7 +472,7 @@ function PublicLanding({ students, appSettings, onGoToLogin }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 anim-slide-up delay-300">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 anim-slide-up delay-300 mb-16">
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_10px_40px_rgb(0,0,0,0.05)] lg:col-span-1 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-300 transition-colors">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
             <h3 className="font-bold text-slate-900 mb-8 text-center w-full">Rasio Keterserapan</h3>
@@ -504,6 +509,36 @@ function PublicLanding({ students, appSettings, onGoToLogin }) {
             </div>
           </div>
         </div>
+
+        {/* FITUR BARU: GALERI ALUMNI SUKSES */}
+        {workingAlumni.length > 0 && (
+          <div className="anim-slide-up delay-300 mt-10">
+            <div className="text-center mb-10">
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Kisah Sukses Alumni</h3>
+              <p className="text-slate-500 mt-2 text-sm sm:text-base font-medium">Jejak langkah mereka yang telah terserap di dunia kerja profesional.</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {workingAlumni.map((alumni) => (
+                <div key={alumni.nisn} className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/70 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-slate-50 shadow-sm mb-4 bg-slate-100 group-hover:border-blue-100 transition-colors flex-shrink-0">
+                    {alumni?.photoUrl ? (
+                      <img src={alumni.photoUrl} alt={alumni.nama} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300"><User className="w-10 h-10 sm:w-12 sm:h-12" /></div>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1 w-full" title={alumni.nama}>{alumni.nama}</h4>
+                  <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-extrabold rounded-md mt-1.5 mb-3">{alumni.jurusan}</span>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-medium w-full">
+                    <Building className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{alumni.namaPerusahaan}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
       
       <footer className="bg-slate-200/50 border-t border-slate-200 py-8 text-center transition-colors">
@@ -623,10 +658,9 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [adminFormData, setAdminFormData] = useState({ username: '', password: '' });
 
-  // FITUR MODAL PENGHAPUSAN
   const [editingStudent, setEditingStudent] = useState(null);
-  const [studentToDelete, setStudentToDelete] = useState(null); // Modal khusus untuk menghapus data siswa
-  const [adminToDelete, setAdminToDelete] = useState(null); // Modal khusus untuk menghapus admin
+  const [studentToDelete, setStudentToDelete] = useState(null); 
+  const [adminToDelete, setAdminToDelete] = useState(null); 
   
   const [tempSettings, setTempSettings] = useState({});
   
@@ -1050,8 +1084,8 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                   <table className="w-full text-left border-collapse text-sm min-w-[600px]">
                     <thead>
                       <tr className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
+                        <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Profil & Nama</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">NISN</th>
-                        <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Nama Lengkap</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Jurusan</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px]">Status Data</th>
                         <th className="py-4 px-4 sm:px-6 font-bold uppercase tracking-wider text-[10px] sm:text-[11px] text-center">Aksi</th>
@@ -1060,8 +1094,20 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                     <tbody className="divide-y divide-slate-50">
                       {filteredStudentsTable.map((siswa) => (
                         <tr key={siswa.id} className="hover:bg-slate-50/80 transition-colors group">
+                          {/* FITUR BARU: Menampilkan Foto di Tabel Admin */}
+                          <td className="py-3 sm:py-4 px-4 sm:px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 flex items-center justify-center">
+                                {siswa?.photoUrl ? (
+                                  <img src={siswa.photoUrl} alt={siswa.nama} className="w-full h-full object-cover" />
+                                ) : (
+                                  <User className="w-4 h-4 text-slate-400" />
+                                )}
+                              </div>
+                              <span className="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[150px]">{siswa?.nama}</span>
+                            </div>
+                          </td>
                           <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-slate-600">{siswa?.nisn}</td>
-                          <td className="py-3 sm:py-4 px-4 sm:px-6 font-bold text-slate-900 truncate max-w-[150px]">{siswa?.nama}</td>
                           <td className="py-3 sm:py-4 px-4 sm:px-6">
                             <span className="bg-slate-100 text-slate-600 px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold">{siswa?.jurusan}</span>
                           </td>
@@ -1080,12 +1126,9 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                             <button onClick={() => setEditingStudent(siswa)} className="p-1.5 sm:p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="Edit Data">
                               <Edit className="w-4 h-4" />
                             </button>
-                            
-                            {/* PERBAIKAN: Tombol Hapus memicu Popup Modal khusus */}
                             <button onClick={() => setStudentToDelete(siswa)} className="p-1.5 sm:p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all ml-1 sm:ml-2" title="Hapus Data">
                               <Trash2 className="w-4 h-4" />
                             </button>
-
                           </td>
                         </tr>
                       ))}
@@ -1130,8 +1173,6 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                             <button onClick={() => { setAdminFormData({username: admin.username, password: admin.password}); setEditingAdmin(admin.username); setIsAdminModalOpen(true); }} className="p-1.5 sm:p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all mr-1 sm:mr-2" title="Edit Password">
                               <Edit className="w-4 h-4" />
                             </button>
-
-                            {/* PERBAIKAN: Tombol Hapus memicu Popup Modal khusus */}
                             <button onClick={() => {
                               if(admins.length <= 1) {
                                 showToast("Tidak bisa menghapus akun admin terakhir!", "error");
@@ -1141,7 +1182,6 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
                             }} className="p-1.5 sm:p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="Hapus Admin">
                               <Trash2 className="w-4 h-4" />
                             </button>
-
                           </td>
                         </tr>
                       ))}
@@ -1376,6 +1416,7 @@ function AdminDashboard({ students, activities, appSettings, admins, hasLoadedSe
               <div className="p-4 sm:p-8">
                  <StudentFormContent 
                     student={editingStudent} 
+                    showToast={showToast}
                     onSave={async (data) => {
                       await onUpdateStudent(data);
                       setEditingStudent(null);
@@ -1445,14 +1486,14 @@ function StudentForm({ student, appSettings, hasLoadedSettings, onLogout, onSave
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Formulir Tracer Study</h2>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1.5 sm:mt-2">Pastikan data diisi sesuai dengan kondisi nyata saat ini.</p>
           </div>
-          <StudentFormContent student={student} onSave={onSave} />
+          <StudentFormContent student={student} onSave={onSave} showToast={showToast} />
         </div>
       </div>
     </div>
   );
 }
 
-function StudentFormContent({ student, onSave, onCancel }) {
+function StudentFormContent({ student, onSave, onCancel, showToast }) {
   const [formData, setFormData] = useState({ ...(student || {}) });
 
   useEffect(() => {
@@ -1462,8 +1503,72 @@ function StudentFormContent({ student, onSave, onCancel }) {
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
 
+  // FITUR BARU: Kompresi dan Upload Foto Siswa
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5000000) {
+      if (showToast) showToast("Ukuran foto terlalu besar (Maks 5MB)", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400; // Dikompres ekstrim untuk Firestore Limit
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+        } else {
+          if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress as JPEG to make Base64 very small
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        setFormData(prev => ({ ...prev, photoUrl: compressedBase64 }));
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-10">
+      
+      {/* FITUR BARU: UPLOAD FOTO DI FORM SISWA */}
+      <div className="bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-200/70 relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-start gap-6">
+         <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-200 flex-shrink-0 flex items-center justify-center relative group">
+           {formData?.photoUrl ? (
+             <img src={formData.photoUrl} alt="Foto Profil" className="w-full h-full object-cover" />
+           ) : (
+             <User className="w-10 h-10 sm:w-14 sm:h-14 text-slate-400" />
+           )}
+         </div>
+         <div className="text-center sm:text-left flex-1">
+            <h4 className="font-bold text-slate-900 mb-1">Foto Profil / Pas Foto</h4>
+            <p className="text-xs text-slate-500 mb-4 sm:mb-5">Upload foto Anda agar dapat ditampilkan di Galeri Jejak Karir halaman depan. Gunakan pakaian formal/rapi.</p>
+            <input type="file" accept="image/*" id="photo-upload" onChange={handlePhotoChange} className="hidden" />
+            <label htmlFor="photo-upload" className="inline-block px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs sm:text-sm rounded-xl cursor-pointer hover:bg-slate-100 transition-colors shadow-sm select-none">
+              {formData?.photoUrl ? 'Ganti Foto' : 'Pilih Foto'}
+            </label>
+            {formData?.photoUrl && (
+              <button type="button" onClick={() => setFormData(prev => ({...prev, photoUrl: null}))} className="block mt-3 sm:mt-2 text-[10px] sm:text-xs text-red-500 font-bold hover:underline mx-auto sm:mx-0 select-none">
+                Hapus Foto
+              </button>
+            )}
+         </div>
+      </div>
+
       {/* 1: Biodata */}
       <div className="bg-slate-50 p-5 sm:p-8 rounded-3xl border border-slate-200/70 relative overflow-hidden group hover:border-blue-400 transition-colors">
         <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-blue-500"></div>
@@ -1555,7 +1660,7 @@ function StatCard({ icon, title, value, color }) {
   };
 
   return (
-    <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group select-none">
+    <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group select-none">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
         <div className={`p-3 sm:p-4 rounded-2xl bg-gradient-to-br border ${c[color]} group-hover:scale-110 transition-transform duration-300`}>{React.cloneElement(icon, { className: 'w-5 h-5 sm:w-6 sm:h-6' })}</div>
         <div>
@@ -1594,7 +1699,7 @@ function AdminCharts({ filteredStudents, totalLulusan }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 anim-slide-up delay-200">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] lg:col-span-1">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] lg:col-span-1">
         <h3 className="font-extrabold text-slate-900 mb-8 text-center">Partisipasi Tracer</h3>
         <div className="flex justify-center items-center h-44">
           <div className="relative w-36 h-36">
@@ -1623,7 +1728,7 @@ function AdminCharts({ filteredStudents, totalLulusan }) {
           <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-200"></div> Pending</div>
         </div>
       </div>
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.08)] lg:col-span-2">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/70 shadow-[0_10px_40px_rgb(0,0,0,0.05)] lg:col-span-2">
         <h3 className="font-extrabold text-slate-900 mb-4">Serapan Industri Berdasarkan Jurusan</h3>
         <div className="h-52 relative w-full">
           <SimpleBarChart data={jurusanStats} categories={['TKJ', 'TKR', 'MP']} />
